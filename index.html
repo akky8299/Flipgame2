@@ -123,13 +123,15 @@
             right: 20px;
             background: rgba(0, 0, 0, 0.9);
             color: white;
-            padding: 15px 25px;
-            border-radius: 10px;
+            padding: 8px 16px;
+            border-radius: 8px;
             z-index: 1000;
             transform: translateX(400px);
             transition: transform 0.3s ease;
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.2);
+            font-size: 14px;
+            max-width: 300px;
         }
         
         .toast.show {
@@ -361,7 +363,29 @@
                 <h2 class="text-xl font-semibold text-white" data-en="Profile" data-hi="प्रोफाइल">Profile</h2>
                 <button id="closeProfile" class="text-white text-xl">
                     <i class="fas fa-times"></i>
-    outBtn" class="w-full bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg mt-6">
+                </button>
+            </div>
+            
+            <div class="space-y-4 text-white">
+                <div>
+                    <p class="text-sm opacity-75" data-en="Name" data-hi="नाम">Name</p>
+                    <p id="profileName" class="text-lg">User Name</p>
+                </div>
+                <div>
+                    <p class="text-sm opacity-75" data-en="Total Profit" data-hi="कुल मुनाफा">Total Profit</p>
+                    <p id="profileProfit" class="text-lg text-green-400">₹0</p>
+                </div>
+                <div>
+                    <p class="text-sm opacity-75" data-en="Total Loss" data-hi="कुल हानि">Total Loss</p>
+                    <p id="profileLoss" class="text-lg text-red-400">₹0</p>
+                </div>
+                <div>
+                    <p class="text-sm opacity-75" data-en="Games Played" data-hi="खेले गए खेल">Games Played</p>
+                    <p id="profileGames" class="text-lg">0</p>
+                </div>
+            </div>
+            
+            <button id="logoutBtn" class="w-full bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg mt-6">
                 <span data-en="Logout" data-hi="लॉगआउट">Logout</span>
             </button>
         </div>
