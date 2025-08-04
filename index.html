@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CoinCoin - Multiplayer Real-time Game</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
+        
+        * {
+            font-family: 'Poppins', sans-serif;
+        }
+        
+        .coin {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 2s;
+            margin: 0 auto;
+        }
+        
+        .coin-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: bold;
+            color: white;
+            backface-visibility: hidden;
+        }
+        
+        .coin-heads {
+            background: linear-gradient(45deg, #FFD700, #FFA500);
+        }
+        
+        .coin-tails {
+            background: linear-gradient(45deg, #C0C0C0, #808080);
+            transform: rotateY(180deg);
+        }
+        
+        .flip-heads {
+            transform: rotateY(0deg);
+        }
+        
+        .flip-tails {
+            transform: rotateY(180deg);
+        }
+        
+        .betting-button {
+            transition: all 0.3s ease;
+        }
+        
+        .betting-button:hover {
+            transform: scale(1.05);
+        }
+        
+        .betting-button:active {
+            transform: scale(0.95);
+        }
+        
+        .online-indicator {
+            width: 10px;
+            height: 10px;
+            background: #10B981;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
+        
+        .countdown-timer {
+            font-size: 3rem;
+            font-weight: bold;
+            color: #EF4444;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .game-container {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+    </style>
+</head>
+<body class="game-container">
+    
+    <!-- Language Toggle -->
+    <div class="fixed top-4 right-4 z-50">
+        <button id="langToggle" class="bg-white bg-opacity-20 text-white px-4 py-2 rounded-full backdrop-filter backdrop-blur-sm">
+            <i class="fas fa-language mr-2"></i>
+            <span id="langText">EN</span>
+        </button>
+    </div>
+
+    <!-- Login/Signup Screen -->
+    <div id="authScreen" class="min-h-screen flex items-center justify-center p-4">
+        <div class="glass-card rounded-2xl p-8 w-full max-w-md">
+            <h1 class="text-4xl font-bold text-center text-white mb-8">
+                <i class="fas fa-coins mr-2"></i>CoinCoin
+            </h1>
+            
+            <div id="loginForm">
+                <h2 class="text-2xl font-semibold text-white mb-6 text-center" data-en="Login" data-hi="लॉगिन">Login</h2>
+                
+                <div class="space-y-4">
+                    <input type="email" id="loginEmail" placeholder="Email" 
+                           class="w-full p-3 rounded-lg bg-white bg-opacity-20 text-white placeholder-gray-300 border border-white border-opacity-30">
+                    
+                    <input type="password" id="loginPassword" placeholder="Password" 
+                           class="w-full p-3 rounded-lg bg-white bg-opacity-20 text-white placeholder-gray-300 border border-white border-opacity-30">
+                    
+                    <button id="loginBtn" class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-lg transition duration-300">
+                        <span data-en="Login" data-hi="लॉगिन">Login</span>
+                    </button>
+                </div>
+                
+                <p class="text-center text-white mt-4">
+                    <span data-en="Don't have an account?" data-hi="खाता नहीं है?">Don't have an account?</span>
+                    <button id="showSignup" class="text-yellow-300 hover:text-yellow-200 ml-2 underline">
+                        <span data-en="Sign Up" data-hi="साइन अप">Sign Up</span>
+                    </button>
+                </p>
+            </div>
+            
+            <div id="signupForm" class="hidden">
+                <h2 class="text-2xl font-semibold text-white mb-6 text-center" data-en="Sign Up" data-hi="साइन अप">Sign Up</h2>
+                
+                <div class="space-y-4">
+                    <input type="text" id="signupName" placeholder="Full Name" 
+                           class="w-full p-3 rounded-lg bg-white bg-opacity-20 text-white placeholder-gray-300 border border-white border-opacity-30">
+                    
+                    <input type="email" id="signupEmail" placeholder="Email" 
+                           class="w-full p-3 rounded-lg bg-white bg-opacity-20 text-white placeholder-gray-300 border border-white border-opacity-30">
+                    
+                    <input type="password" id="signupPassword" placeholder="Password" 
+                           class="w-full p-3 rounded-lg bg-white bg-opacity-20 text-white placeholder-gray-300 border border-white border-opacity-30">
+                    
+                    <input type="text" id="referralId" placeholder="Referral ID (Optional)" 
+                           class="w-full p-3 rounded-lg bg-white bg-opacity-20 text-white placeholder-gray-300 border border-white border-opacity-30">
+                    
+                    <button id="signupBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition duration-300">
+                        <span data-en="Sign Up" data-hi="साइन अप">Sign Up</span>
+                    </button>
+                </div>
+                
+                <p class="text-center text-white mt-4">
+                    <span data-en="Already have an account?" data-hi="पहले से खाता है?">Already have an account?</span>
+                    <button id="showLogin" class="text-yellow-300 hover:text-yellow-200 ml-2 underline">
+                        <span data-en="Login" data-hi="लॉगिन">Login</span>
+                    </button>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Game Screen -->
+    <div id="gameScreen" class="hidden min-h-screen p-4">
+        
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-6">
+            <div class="flex items-center space-x-4">
+                <button id="profileBtn" class="glass-card p-3 rounded-lg text-white">
+                    <i class="fas fa-user mr-2"></i>
+                    <span data-en="Profile" data-hi="प्रोफाइल">Profile</span>
+                </button>
+                
+                <button id="activeBossBtn" class="glass-card p-3 rounded-lg text-white">
+                    <i class="fas fa-crown mr-2"></i>
+                    <span data-en="Active Boss" data-hi="एक्टिव बॉस">Active Boss</span>
+                </button>
+            </div>
+            
+            <button id="walletBtn" class="glass-card p-3 rounded-lg text-white flex items-center">
+                <i class="fas fa-wallet mr-2"></i>
+                <span data-en="Wallet" data-hi="वॉलेट">Wallet</span>
+                <span id="walletBalance" class="ml-2 font-bold">₹0</span>
+            </button>
+        </div>
+
+        <!-- Game Area -->
+        <div class="glass-card rounded-2xl p-6 mb-6">
+            
+            <!-- Countdown Timer -->
+            <div class="text-center mb-6">
+                <div id="countdownDisplay" class="countdown-timer">00</div>
+                <p class="text-white text-lg mt-2" data-en="Next Round Starts In" data-hi="अगला राउंड शुरू होगा">Next Round Starts In</p>
+            </div>
+
+            <!-- Coin Animation -->
+            <div class="flex justify-center mb-8">
+                <div id="coinElement" class="coin">
+                    <div class="coin-face coin-heads">
+                        <span data-en="HEAD" data-hi="चित">HEAD</span>
+                    </div>
+                    <div class="coin-face coin-tails">
+                        <span data-en="TAIL" data-hi="पट">TAIL</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Betting Options -->
+            <div id="bettingArea" class="space-y-4">
+                <h3 class="text-white text-xl font-semibold text-center mb-4" data-en="Place Your Bet" data-hi="अपना दांव लगाएं">Place Your Bet</h3>
+                
+                <!-- Betting Amounts -->
+                <div class="grid grid-cols-5 gap-2 mb-4">
+                    <button class="betting-amount betting-button bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg" data-amount="10">₹10</button>
+                    <button class="betting-amount betting-button bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg" data-amount="20">₹20</button>
+                    <button class="betting-amount betting-button bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg" data-amount="50">₹50</button>
+                    <button class="betting-amount betting-button bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg" data-amount="100">₹100</button>
+                    <button class="betting-amount betting-button bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg" data-amount="500">₹500</button>
+                </div>
+                
+                <!-- Custom Amount -->
+                <div class="flex space-x-2">
+                    <input type="number" id="customAmount" placeholder="Custom Amount (₹10-₹2000)" min="10" max="2000" 
+                           class="flex-1 p-2 rounded-lg bg-white bg-opacity-20 text-white placeholder-gray-300">
+                    <button id="setCustomAmount" class="betting-button bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg">
+                        <span data-en="Set" data-hi="सेट">Set</span>
+                    </button>
+                </div>
+                
+                <!-- Selected Amount Display -->
+                <div class="text-center">
+                    <p class="text-white">
+                        <span data-en="Selected Amount:" data-hi="चुनी गई राशि:">Selected Amount:</span>
+                        <span id="selectedAmount" class="font-bold text-yellow-300">₹0</span>
+                    </p>
+                </div>
+                
+                <!-- Head/Tail Buttons -->
+                <div class="grid grid-cols-2 gap-4">
+                    <button id="betHeads" class="betting-button bg-yellow-600 hover:bg-yellow-700 text-white py-4 rounded-lg text-xl font-semibold">
+                        <i class="fas fa-coins mr-2"></i>
+                        <span data-en="BET HEAD" data-hi="चित पर दांव">BET HEAD</span>
+                    </button>
+                    <button id="betTails" class="betting-button bg-gray-600 hover:bg-gray-700 text-white py-4 rounded-lg text-xl font-semibold">
+                        <i class="fas fa-coins mr-2"></i>
+                        <span data-en="BET TAIL" data-hi="पट पर दांव">BET TAIL</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Game Status -->
+            <div class="text-center mt-6">
+                <div id="gameStatus" class="text-white text-lg">
+                    <span data-en="Waiting for next round..." data-hi="अगले राउंड का इंतजार...">Waiting for next round...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Live Stats -->
+        <div class="glass-card rounded-2xl p-4">
+            <h3 class="text-white text-lg font-semibold mb-4" data-en="Live Statistics" data-hi="लाइव आंकड़े">Live Statistics</h3>
+            
+            <div class="grid grid-cols-3 gap-4 text-center">
+                <div class="text-white">
+                    <p class="text-sm opacity-75" data-en="Total Players" data-hi="कुल खिलाड़ी">Total Players</p>
+                    <p id="totalPlayers" class="text-xl font-bold">0</p>
+                </div>
+                <div class="text-white">
+                    <p class="text-sm opacity-75" data-en="Head Bets" data-hi="चित पर दांव">Head Bets</p>
+                    <p id="headBets" class="text-xl font-bold">₹0</p>
+                </div>
+                <div class="text-white">
+                    <p class="text-sm opacity-75" data-en="Tail Bets" data-hi="पट पर दांव">Tail Bets</p>
+                    <p id="tailBets" class="text-xl font-bold">₹0</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile Modal -->
+    <div id="profileModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="glass-card rounded-2xl p-6 w-full max-w-md">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold text-white" data-en="Profile" data-hi="प्रोफाइल">Profile</h2>
+                <button id="closeProfile" class="text-white text-xl">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-4 text-white">
+                <div>
+                    <p class="text-sm opacity-75" data-en="Name" data-hi="नाम">Name</p>
+                    <p id="profileName" class="text-lg">User Name</p>
+                </div>
+                <div>
+                    <p class="text-sm opacity-75" data-en="Total Profit" data-hi="कुल मुनाफा">Total Profit</p>
+                    <p id="profileProfit" class="text-lg text-green-400">₹0</p>
+                </div>
+                <div>
+                    <p class="text-sm opacity-75" data-en="Total Loss" data-hi="कुल हानि">Total Loss</p>
+                    <p id="profileLoss" class="text-lg text-red-400">₹0</p>
+                </div>
+                <div>
+                    <p class="text-sm opacity-75" data-en="Games Played" data-hi="खेले गए खेल">Games Played</p>
+                    <p id="profileGames" class="text-lg">0</p>
+                </div>
+            </div>
+            
+            <button id="logoutBtn" class="w-full bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg mt-6">
+                <span data-en="Logout" data-hi="लॉगआउट">Logout</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Wallet Modal -->
+    <div id="walletModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="glass-card rounded-2xl p-6 w-full max-w-md">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold text-white" data-en="Wallet" data-hi="वॉलेट">Wallet</h2>
+                <button id="closeWallet" class="text-white text-xl">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="text-center mb-6">
+                <p class="text-white text-sm opacity-75" data-en="Current Balance" data-hi="वर्तमान बैलेंस">Current Balance</p>
+                <p id="modalWalletBalance" class="text-white text-3xl font-bold">₹0</p>
+            </div>
+            
+            <div class="space-y-4">
+                <button id="addMoneyBtn" class="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg">
+                    <i class="fas fa-plus mr-2"></i>
+                    <span data-en="Add Money (Min ₹200)" data-hi="पैसे जोड़ें (न्यूनतम ₹200)">Add Money (Min ₹200)</span>
+                </button>
+                
+                <button id="withdrawMoneyBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg">
+                    <i class="fas fa-minus mr-2"></i>
+                    <span data-en="Withdraw Money (Min ₹4000)" data-hi="पैसे निकालें (न्यूनतम ₹4000)">Withdraw Money (Min ₹4000)</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Boss Modal -->
+    <div id="bossModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="glass-card rounded-2xl p-6 w-full max-w-md">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold text-white" data-en="Active Boss" data-hi="एक्टिव बॉस">Active Boss</h2>
+                <button id="closeBoss" class="text-white text-xl">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div id="bossList" class="space-y-3">
+                <!-- Boss list will be populated here -->
+            </div>
+            
+            <div id="activePlayers" class="mt-6">
+                <h3 class="text-white font-semibold mb-3" data-en="Active Players" data-hi="सक्रिय खिलाड़ी">Active Players</h3>
+                <div id="playersList" class="space-y-2">
+                    <!-- Active players will be populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getDatabase, ref, set, get, onValue, push, update, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAWFRw8XzqGF011OdzRO8WzaXcCF5Uzsxg",
+            authDomain: "flipcoin-1030e.firebaseapp.com",
+            databaseURL: "https://flipcoin-1030e-default-rtdb.firebaseio.com",
+            projectId: "flipcoin-1030e",
+            storageBucket: "flipcoin-1030e.firebasestorage.app",
+            messagingSenderId: "485574721435",
+            appId: "1:485574721435:web:9c4713a57521128f122b3e",
+            measurementId: "G-JKG0KTMTBQ"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const database = getDatabase(app);
+
+        // Global variables
+        let currentUser = null;
+        let currentLanguage = 'en';
+        let selectedBetAmount = 0;
+        let currentCountdown = 0;
+        let countdownInterval = null;
+        let gameActive = false;
+
+        // DOM Elements
+        const authScreen = document.getElementById('authScreen');
+        const gameScreen = document.getElementById('gameScreen');
+        const loginForm = document.getElementById('loginForm');
+        const signupForm = document.getElementById('signupForm');
+        
+        // Language Toggle
+        const langToggle = document.getElementById('langToggle');
+        const langText = document.getElementById('langText');
+        
+        // Initialize Language System
+        function updateLanguage() {
+            const elements = document.querySelectorAll('[data-en][data-hi]');
+            elements.forEach(element => {
+                const text = currentLanguage === 'en' ? element.getAttribute('data-en') : element.getAttribute('data-hi');
+                element.textContent = text;
+            });
+            langText.textContent = currentLanguage.toUpperCase();
+        }
+        
+        langToggle.addEventListener('click', () => {
+            currentLanguage = currentLanguage === 'en' ? 'hi' : 'en';
+            updateLanguage();
+        });
+
+        // Auth State Observer
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                initializeUser();
+                showGameScreen();
+            } else {
+                currentUser = null;
+                showAuthScreen();
+            }
+        });
+
+        // Show/Hide Screens
+        function showAuthScreen() {
+            authScreen.classList.remove('hidden');
+            gameScreen.classList.add('hidden');
+        }
+
+        function showGameScreen() {
+            authScreen.classList.add('hidden');
+            gameScreen.classList.remove('hidden');
+            startGameListeners();
+        }
+
+        // Form Toggles
+        document.getElementById('showSignup').addEventListener('click', () => {
+            loginForm.classList.add('hidden');
+            signupForm.classList.remove('hidden');
+        });
+
+        document.getElementById('showLogin').addEventListener('click', () => {
+            signupForm.classList.add('hidden');
+            loginForm.classList.remove('hidden');
+        });
+
+        // Login
+        document.getElementById('loginBtn').addEventListener('click', async () => {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            if (!email || !password) {
+                alert('Please fill all fields');
+                return;
+            }
+
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+            } catch (error) {
+                alert('Login failed: ' + error.message);
+            }
+        });
+
+        // Signup
+        document.getElementById('signupBtn').addEventListener('click', async () => {
+            const name = document.getElementById('signupName').value;
+            const email = document.getElementById('signupEmail').value;
+            const password = document.getElementById('signupPassword').value;
+            const referralId = document.getElementById('referralId').value;
+            
+            if (!name || !email || !password) {
+                alert('Please fill all required fields');
+                return;
+            }
+
+            try {
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+                
+                // Create user profile
+                const userData = {
+                    name: name,
+                    email: email,
+                    referralId: referralId || '',
+                    balance: referralId ? 100 : 0, // ₹100 bonus for referral
+                    totalProfit: 0,
+                    totalLoss: 0,
+                    gamesPlayed: 0,
+                    createdAt: serverTimestamp(),
+                    isOnline: true
+                };
+                
+                await set(ref(database, 'users/' + user.uid), userData);
+                
+            } catch (error) {
+                alert('Signup failed: ' + error.message);
+            }
+        });
+
+        // Initialize User Data
+        async function initializeUser() {
+            if (!currentUser) return;
+            
+            try {
+                const userRef = ref(database, 'users/' + currentUser.uid);
+                const snapshot = await get(userRef);
+                
+                if (snapshot.exists()) {
+                    const userData = snapshot.val();
+                    updateWalletDisplay(userData.balance || 0);
+                    document.getElementById('profileName').textContent = userData.name || 'User';
+                    document.getElementById('profileProfit').textContent = '₹' + (userData.totalProfit || 0);
+                    document.getElementById('profileLoss').textContent = '₹' + (userData.totalLoss || 0);
+                    document.getElementById('profileGames').textContent = userData.gamesPlayed || 0;
+                    
+                    // Set user online
+                    await update(userRef, { isOnline: true, lastActive: serverTimestamp() });
+                }
+            } catch (error) {
+                console.error('Error initializing user:', error);
+            }
+        }
+
+        // Update Wallet Display
+        function updateWalletDisplay(balance) {
+            document.getElementById('walletBalance').textContent = '₹' + balance;
+            document.getElementById('modalWalletBalance').textContent = '₹' + balance;
+        }
+
+        // Game Logic
+        function startGameListeners() {
+            // Listen for game state changes
+            const gameStateRef = ref(database, 'gameState');
+            onValue(gameStateRef, (snapshot) => {
+                if (snapshot.exists()) {
+                    const gameState = snapshot.val();
+                    updateGameState(gameState);
+                }
+            });
+
+            // Listen for live stats
+            const betsRef = ref(database, 'currentBets');
+            onValue(betsRef, (snapshot) => {
+                updateLiveStats(snapshot.val() || {});
+            });
+        }
+
+        // Update Game State
+        function updateGameState(gameState) {
+            if (gameState.countdownTime > 0) {
+                startCountdown(gameState.countdownTime);
+                enableBetting();
+                gameActive = true;
+            } else {
+                stopCountdown();
+                disableBetting();
+                gameActive = false;
+                
+                if (gameState.result) {
+                    showResult(gameState.result);
+                }
+            }
+        }
+
+        // Countdown Timer
+        function startCountdown(seconds) {
+            currentCountdown = seconds;
+            updateCountdownDisplay();
+            
+            countdownInterval = setInterval(() => {
+                currentCountdown--;
+                updateCountdownDisplay();
+                
+                if (currentCountdown <= 0) {
+                    stopCountdown();
+                    disableBetting();
+                }
+            }, 1000);
+        }
+
+        function stopCountdown() {
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+                countdownInterval = null;
+            }
+            currentCountdown = 0;
+            updateCountdownDisplay();
+        }
+
+        function updateCountdownDisplay() {
+            const display = document.getElementById('countdownDisplay');
+            display.textContent = currentCountdown.toString().padStart(2, '0');
+        }
+
+        // Betting Functions
+        function enableBetting() {
+            document.getElementById('bettingArea').style.pointerEvents = 'auto';
+            document.getElementById('bettingArea').style.opacity = '1';
+        }
+
+        function disableBetting() {
+            document.getElementById('bettingArea').style.pointerEvents = 'none';
+            document.getElementById('bettingArea').style.opacity = '0.5';
+        }
+
+        // Betting Amount Selection
+        document.querySelectorAll('.betting-amount').forEach(button => {
+            button.addEventListener('click', () => {
+                selectedBetAmount = parseInt(button.dataset.amount);
+                updateSelectedAmountDisplay();
+            });
+        });
+
+        document.getElementById('setCustomAmount').addEventListener('click', () => {
+            const customAmount = parseInt(document.getElementById('customAmount').value);
+            if (customAmount >= 10 && customAmount <= 2000) {
+                selectedBetAmount = customAmount;
+                updateSelectedAmountDisplay();
+            } else {
+                alert('Amount must be between ₹10 and ₹2000');
+            }
+        });
+
+        function updateSelectedAmountDisplay() {
+            document.getElementById('selectedAmount').textContent = '₹' + selectedBetAmount;
+        }
+
+        // Place Bet
+        document.getElementById('betHeads').addEventListener('click', () => placeBet('heads'));
+        document.getElementById('betTails').addEventListener('click', () => placeBet('tails'));
+
+        async function placeBet(choice) {
+            if (!gameActive || selectedBetAmount === 0) {
+                alert('Please select an amount and wait for the game to start');
+                return;
+            }
+
+            if (!currentUser) {
+                alert('Please login first');
+                return;
+            }
+
+            try {
+                // Check user balance
+                const userRef = ref(database, 'users/' + currentUser.uid);
+                const snapshot = await get(userRef);
+                const userData = snapshot.val();
+                
+                if (!userData || userData.balance < selectedBetAmount) {
+                    alert('Insufficient balance');
+                    return;
+                }
+
+                // Place bet
+                const betData = {
+                    userId: currentUser.uid,
+                    userName: userData.name,
+                    amount: selectedBetAmount,
+                    choice: choice,
+                    timestamp: serverTimestamp()
+                };
+
+                const betRef = push(ref(database, 'currentBets'));
+                await set(betRef, betData);
+
+                // Update user balance
+                await update(userRef, { 
+                    balance: userData.balance - selectedBetAmount 
+                });
+
+                updateWalletDisplay(userData.balance - selectedBetAmount);
+                selectedBetAmount = 0;
+                updateSelectedAmountDisplay();
+                
+                alert('Bet placed successfully!');
+
+            } catch (error) {
+                console.error('Error placing bet:', error);
+                alert('Failed to place bet');
+            }
+        }
+
+        // Show Result
+        function showResult(result) {
+            const coin = document.getElementById('coinElement');
+            
+            if (result === 'heads') {
+                coin.classList.remove('flip-tails');
+                coin.classList.add('flip-heads');
+            } else {
+                coin.classList.remove('flip-heads');
+                coin.classList.add('flip-tails');
+            }
+
+            document.getElementById('gameStatus').innerHTML = 
+                `<span class="text-2xl font-bold text-yellow-300">Result: ${result.toUpperCase()}</span>`;
+        }
+
+        // Update Live Stats
+        function updateLiveStats(bets) {
+            let totalPlayers = 0;
+            let headBets = 0;
+            let tailBets = 0;
+
+            Object.values(bets).forEach(bet => {
+                totalPlayers++;
+                if (bet.choice === 'heads') {
+                    headBets += bet.amount;
+                } else {
+                    tailBets += bet.amount;
+                }
+            });
+
+            document.getElementById('totalPlayers').textContent = totalPlayers;
+            document.getElementById('headBets').textContent = '₹' + headBets;
+            document.getElementById('tailBets').textContent = '₹' + tailBets;
+        }
+
+        // Modal Handlers
+        document.getElementById('profileBtn').addEventListener('click', () => {
+            document.getElementById('profileModal').classList.remove('hidden');
+        });
+
+        document.getElementById('closeProfile').addEventListener('click', () => {
+            document.getElementById('profileModal').classList.add('hidden');
+        });
+
+        document.getElementById('walletBtn').addEventListener('click', () => {
+            document.getElementById('walletModal').classList.remove('hidden');
+        });
+
+        document.getElementById('closeWallet').addEventListener('click', () => {
+            document.getElementById('walletModal').classList.add('hidden');
+        });
+
+        document.getElementById('activeBossBtn').addEventListener('click', () => {
+            document.getElementById('bossModal').classList.remove('hidden');
+            loadBossList();
+        });
+
+        document.getElementById('closeBoss').addEventListener('click', () => {
+            document.getElementById('bossModal').classList.add('hidden');
+        });
+
+        // Wallet Functions
+        document.getElementById('addMoneyBtn').addEventListener('click', () => {
+            const amount = prompt('Enter amount to add (Minimum ₹200):');
+            if (amount && parseInt(amount) >= 200) {
+                // In real implementation, this would go through payment gateway
+                alert('Add money request sent to admin for approval');
+            } else {
+                alert('Minimum amount is ₹200');
+            }
+        });
+
+        document.getElementById('withdrawMoneyBtn').addEventListener('click', () => {
+            const amount = prompt('Enter amount to withdraw (Minimum ₹4000):');
+            if (amount && parseInt(amount) >= 4000) {
+                // In real implementation, this would check balance and process withdrawal
+                alert('Withdrawal request sent to admin for approval');
+            } else {
+                alert('Minimum withdrawal amount is ₹4000');
+            }
+        });
+
+        // Boss System
+        async function loadBossList() {
+            try {
+                const bossRef = ref(database, 'bosses');
+                const snapshot = await get(bossRef);
+                const bossList = document.getElementById('bossList');
+                
+                bossList.innerHTML = '';
+                
+                if (snapshot.exists()) {
+                    Object.entries(snapshot.val()).forEach(([key, boss]) => {
+                        const bossElement = document.createElement('div');
+                        bossElement.className = 'flex items-center justify-between p-3 bg-white bg-opacity-10 rounded-lg';
+                        bossElement.innerHTML = `
+                            <div class="text-white">
+                                <p class="font-semibold">${boss.name}</p>
+                                <p class="text-sm opacity-75">ID: ${boss.referralId}</p>
+                            </div>
+                            <button class="select-boss bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg" data-boss-id="${key}">
+                                Select
+                            </button>
+                        `;
+                        bossList.appendChild(bossElement);
+                    });
+                    
+                    // Add event listeners to select boss buttons
+                    document.querySelectorAll('.select-boss').forEach(button => {
+                        button.addEventListener('click', () => {
+                            const bossId = button.dataset.bossId;
+                            selectBoss(bossId);
+                        });
+                    });
+                } else {
+                    bossList.innerHTML = '<p class="text-white text-center">No bosses available</p>';
+                }
+            } catch (error) {
+                console.error('Error loading bosses:', error);
+            }
+        }
+
+        async function selectBoss(bossId) {
+            try {
+                if (!currentUser) return;
+                
+                const userRef = ref(database, 'users/' + currentUser.uid);
+                await update(userRef, { selectedBoss: bossId });
+                
+                loadActivePlayers(bossId);
+                alert('Boss selected successfully!');
+            } catch (error) {
+                console.error('Error selecting boss:', error);
+            }
+        }
+
+        async function loadActivePlayers(bossId) {
+            try {
+                const usersRef = ref(database, 'users');
+                const snapshot = await get(usersRef);
+                const playersList = document.getElementById('playersList');
+                
+                playersList.innerHTML = '';
+                
+                if (snapshot.exists()) {
+                    Object.values(snapshot.val()).forEach(user => {
+                        if (user.selectedBoss === bossId && user.isOnline) {
+                            const playerElement = document.createElement('div');
+                            playerElement.className = 'flex items-center space-x-3 text-white';
+                            playerElement.innerHTML = `
+                                <div class="online-indicator"></div>
+                                <span>${user.name}</span>
+                            `;
+                            playersList.appendChild(playerElement);
+                        }
+                    });
+                } else {
+                    playersList.innerHTML = '<p class="text-white">No active players</p>';
+                }
+            } catch (error) {
+                console.error('Error loading active players:', error);
+            }
+        }
+
+        // Logout
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            try {
+                if (currentUser) {
+                    const userRef = ref(database, 'users/' + currentUser.uid);
+                    await update(userRef, { isOnline: false });
+                }
+                await signOut(auth);
+            } catch (error) {
+                console.error('Error signing out:', error);
+            }
+        });
+
+        // Initialize
+        updateLanguage();
+        disableBetting();
+
+        // Sound Effects (basic beep sounds)
+        const playSound = (frequency, duration) => {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = frequency;
+            oscillator.type = 'sine';
+            
+            gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.01);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + duration);
+        };
+
+        // Add sound effects to buttons
+        document.querySelectorAll('button').forEach(button => {
+            button.addEventListener('click', () => {
+                playSound(800, 0.1);
+            });
+        });
+
+    </script>
+</body>
+</html>
