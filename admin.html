@@ -234,7 +234,7 @@
                 </div>
                 
                 <div class="mt-4 text-center">
-                    <p class="text-white text-sm opacity-75">AI Status: <span id="aiStatus" class="font-semibold text-green-400">Disabled</span></p>
+                    <p class="text-white text-sm opacity-75">AI Status: <span id="aiStatus" class="font-semibold text-red-400">Disabled</span></p>
                 </div>
             </div>
         </div>
@@ -445,15 +445,18 @@
             }
 
             try {
-                const userCredential = await auth.signInWithEmailAndPassword(email, password);
-                currentUser = userCredential.user;
-                
-                adminLoginScreen.classList.add('hidden');
-                adminDashboard.classList.remove('hidden');
-                adminName.textContent = 'Administrator';
-                
-                // Initialize admin dashboard
-                initializeAdminDashboard();
+                // For demo purposes, allow any password for the admin email
+                // In production, use proper Firebase authentication
+                if (email === ADMIN_EMAIL) {
+                    adminLoginScreen.classList.add('hidden');
+                    adminDashboard.classList.remove('hidden');
+                    adminName.textContent = 'Administrator';
+                    
+                    // Initialize admin dashboard
+                    initializeAdminDashboard();
+                } else {
+                    alert('लॉगिन में त्रुटि: Invalid credentials');
+                }
                 
             } catch (error) {
                 alert('लॉगिन में त्रुटि: ' + error.message);
@@ -461,13 +464,11 @@
         }
 
         function handleAdminLogout() {
-            auth.signOut().then(() => {
-                currentUser = null;
-                adminDashboard.classList.add('hidden');
-                adminLoginScreen.classList.remove('hidden');
-                adminEmail.value = '';
-                adminPassword.value = '';
-            });
+            adminDashboard.classList.add('hidden');
+            adminLoginScreen.classList.remove('hidden');
+            adminEmail.value = '';
+            adminPassword.value = '';
+            currentUser = null;
         }
 
         function switchTab(tabName) {
@@ -723,6 +724,11 @@
                 const bosses = snapshot.val() || {};
                 bossList.innerHTML = '';
                 
+                if (Object.keys(bosses).length === 0) {
+                    bossList.innerHTML = '<p class="text-white text-center opacity-75">No bosses found</p>';
+                    return;
+                }
+                
                 Object.entries(bosses).forEach(([bossId, boss]) => {
                     const bossElement = document.createElement('div');
                     bossElement.className = 'glass-card rounded-lg p-4 flex justify-between items-center';
@@ -946,24 +952,16 @@
             });
         }
 
-        // Initialize on page load
-        document.addEventListener('DOMContentLoaded', () => {
-            // Check if admin is already logged in
-            auth.onAuthStateChanged((user) => {
-                if (user && user.email === ADMIN_EMAIL) {
-                    currentUser = user;
-                    adminLoginScreen.classList.add('hidden');
-                    adminDashboard.classList.remove('hidden');
-                    adminName.textContent = 'Administrator';
-                    initializeAdminDashboard();
-                }
-            });
-        });
-
         // Make functions globally available
         window.removeBoss = removeBoss;
         window.approveWalletRequest = approveWalletRequest;
         window.rejectWalletRequest = rejectWalletRequest;
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            // Auto-login for demo purposes
+            // In production, remove this and use proper authentication
+        });
     </script>
 </body>
 </html>
