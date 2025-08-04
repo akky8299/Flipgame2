@@ -625,15 +625,65 @@
                 if (headTotal === tailTotal) {
                     result = 'burn';
                 } else if (headTotal < tailTotal) {
-                    result = 'head'; // Less money on head, so head wins
+                    result = 'head'; // Less money on head, so head wins (house edge)
                 } else {
-                    result = 'tail'; // Less money on tail, so tail wins
+                    result = 'tail'; // Less money on tail, so tail wins (house edge)
+                }
+
+                // Use Gemini AI for more sophisticated decision making
+                try {
+                    const aiResult = await getGeminiDecision(headTotal, tailTotal);
+                    if (aiResult) {
+                        result = aiResult;
+                    }
+                } catch (aiError) {
+                    console.log('AI decision failed, using fallback logic:', aiError);
                 }
 
                 setResult(result);
                 
             } catch (error) {
                 console.error('AI decision error:', error);
+                alert('AI निर्णय में त्रुटि: ' + error.message);
+            }
+        }
+
+        async function getGeminiDecision(headTotal, tailTotal) {
+            try {
+                const prompt = `You are a coin flip game AI. Current bets: Head: ₹${headTotal}, Tail: ₹${tailTotal}. 
+                Rules: 1) If amounts are equal, return 'burn' 2) Generally favor the side with less money (house edge) 
+                3) Occasionally (20% chance) let the side with more money win for fairness. 
+                Return only one word: 'head', 'tail', or 'burn'.`;
+
+                const response = await fetch(GEMINI_API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{
+                                text: prompt
+                            }]
+                        }]
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Gemini API request failed');
+                }
+
+                const data = await response.json();
+                const aiDecision = data.candidates[0].content.parts[0].text.trim().toLowerCase();
+                
+                if (['head', 'tail', 'burn'].includes(aiDecision)) {
+                    return aiDecision;
+                }
+                
+                return null;
+            } catch (error) {
+                console.error('Gemini AI error:', error);
+                return null;
             }
         }
 
