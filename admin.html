@@ -213,6 +213,27 @@
                 </div>
             </div>
 
+            <!-- AI Command Box -->
+            <div class="glass-card rounded-2xl p-6 mb-6">
+                <h3 class="text-white text-xl font-semibold mb-4">
+                    <i class="fas fa-robot mr-2"></i>AI Command Box
+                </h3>
+                
+                <div class="space-y-4">
+                    <div class="flex space-x-2">
+                        <input type="text" id="aiCommandInput" placeholder="Type your command in Hindi or English (e.g., 'टाइमर को 60 सेकंड पर सेट करो', 'Enable AI', 'Add boss named John with ID 12345')" 
+                               class="flex-1 p-3 rounded-lg bg-white bg-opacity-20 text-white placeholder-gray-300 border border-white border-opacity-30">
+                        <button id="executeCommandBtn" class="admin-button bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-semibold">
+                            <i class="fas fa-paper-plane mr-2"></i>Execute
+                        </button>
+                    </div>
+                    
+                    <div id="aiCommandResponse" class="bg-black bg-opacity-30 rounded-lg p-3 text-white text-sm min-h-[60px] max-h-[120px] overflow-y-auto">
+                        <p class="opacity-75">AI Command Response will appear here...</p>
+                    </div>
+                </div>
+            </div>
+
             <!-- Result Control -->
             <div class="glass-card rounded-2xl p-6">
                 <h3 class="text-white text-xl font-semibold mb-4">
@@ -386,6 +407,11 @@
         const resultBurnBtn = document.getElementById('resultBurnBtn');
         const aiStatus = document.getElementById('aiStatus');
 
+        // AI Command Box Elements
+        const aiCommandInput = document.getElementById('aiCommandInput');
+        const executeCommandBtn = document.getElementById('executeCommandBtn');
+        const aiCommandResponse = document.getElementById('aiCommandResponse');
+
         // Stats Elements
         const livePlayersCount = document.getElementById('livePlayersCount');
         const liveHeadBets = document.getElementById('liveHeadBets');
@@ -424,6 +450,14 @@
         resultHeadBtn.addEventListener('click', () => setResult('head'));
         resultTailBtn.addEventListener('click', () => setResult('tail'));
         resultBurnBtn.addEventListener('click', () => setResult('burn'));
+
+        // AI Command Box Events
+        executeCommandBtn.addEventListener('click', executeAICommand);
+        aiCommandInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                executeAICommand();
+            }
+        });
 
         // Boss Management Events
         addBossBtn.addEventListener('click', addBoss);
@@ -568,7 +602,10 @@
             database.ref('gameSettings/aiEnabled').set(true);
             aiStatus.textContent = 'Enabled';
             aiStatus.className = 'font-semibold text-green-400';
-            alert('AI सक्षम की गई');
+            alert('AI सक्षम की गई - अब AI automatic countdown शुरू करेगा');
+            
+            // Start AI automatic countdown if timer is set
+            startAIAutomaticCountdown();
         }
 
         function disableAI() {
@@ -577,6 +614,63 @@
             aiStatus.textContent = 'Disabled';
             aiStatus.className = 'font-semibold text-red-400';
             alert('AI अक्षम की गई');
+            
+            // Stop AI automatic countdown
+            if (aiCountdownInterval) {
+                clearInterval(aiCountdownInterval);
+                aiCountdownInterval = null;
+            }
+        }
+
+        let aiCountdownInterval = null;
+
+        function startAIAutomaticCountdown() {
+            if (!aiEnabled) return;
+            
+            // Clear any existing interval
+            if (aiCountdownInterval) {
+                clearInterval(aiCountdownInterval);
+            }
+            
+            // Start AI automatic countdown cycle
+            aiCountdownInterval = setInterval(() => {
+                if (!aiEnabled) {
+                    clearInterval(aiCountdownInterval);
+                    return;
+                }
+                
+                // Get timer value from input box
+                const timerValue = parseInt(timerInput.value) || 30;
+                
+                // Automatically start betting with the timer value
+                database.ref('gameState').update({
+                    status: 'betting',
+                    countdown: timerValue,
+                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                });
+
+                startCountdown(timerValue);
+                
+                console.log(`AI ने automatic countdown शुरू किया: ${timerValue} सेकंड`);
+                
+            }, 10000); // Start new round every 10 seconds after previous round ends
+        }
+
+        function setGameTimer() {
+            const seconds = parseInt(timerInput.value);
+            if (seconds < 10 || seconds > 300) {
+                alert('समय 10 से 300 सेकंड के बीच होना चाहिए');
+                return;
+            }
+
+            // Set timer in Firebase
+            database.ref('gameSettings/timer').set(seconds);
+            alert(`टाइमर ${seconds} सेकंड पर सेट किया गया`);
+            
+            // If AI is enabled, restart automatic countdown with new timer
+            if (aiEnabled) {
+                startAIAutomaticCountdown();
+            }
         }
 
         function startCountdown(seconds) {
@@ -1000,6 +1094,254 @@
                 aiStatus.textContent = aiEnabled ? 'Enabled' : 'Disabled';
                 aiStatus.className = aiEnabled ? 'font-semibold text-green-400' : 'font-semibold text-red-400';
             });
+        }
+
+        // AI Command Box Functions
+        async function executeAICommand() {
+            const command = aiCommandInput.value.trim();
+            if (!command) {
+                updateAIResponse('कृपया कोई कमांड टाइप करें।', 'error');
+                return;
+            }
+
+            updateAIResponse('AI आपकी कमांड को समझ रहा है...', 'processing');
+
+            try {
+                const response = await fetch(GEMINI_API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{
+                                text: `You are an AI assistant for a CoinCoin game admin panel. The user can give commands in Hindi or English. Based on the command, you need to call the appropriate function.
+
+Available functions:
+1. setTimer(seconds) - Set game timer (10-300 seconds)
+2. startBetting() - Start betting round
+3. resetBets() - Reset all bets
+4. enableAI() - Enable AI automatic mode
+5. disableAI() - Disable AI automatic mode
+6. setResult(result) - Set game result ('head', 'tail', or 'burn')
+7. addBoss(name, referralId) - Add new boss with name and referral ID
+
+User command: "${command}"
+
+Respond with a JSON object containing:
+- action: the function name to call
+- params: array of parameters (if any)
+- message: a friendly response in Hindi explaining what you're doing
+
+Examples:
+- "टाइमर को 60 सेकंड पर सेट करो" → {"action": "setTimer", "params": [60], "message": "टाइमर को 60 सेकंड पर सेट कर रहा हूँ"}
+- "AI चालू करो" → {"action": "enableAI", "params": [], "message": "AI को चालू कर रहा हूँ"}
+- "Head जीते" → {"action": "setResult", "params": ["head"], "message": "Head को विजेता बना रहा हूँ"}
+`
+                            }]
+                        }],
+                        tools: [{
+                            function_declarations: [
+                                {
+                                    name: "setTimer",
+                                    description: "Set the game timer in seconds",
+                                    parameters: {
+                                        type: "object",
+                                        properties: {
+                                            seconds: {
+                                                type: "integer",
+                                                description: "Timer duration in seconds (10-300)"
+                                            }
+                                        },
+                                        required: ["seconds"]
+                                    }
+                                },
+                                {
+                                    name: "startBetting",
+                                    description: "Start a new betting round",
+                                    parameters: { type: "object", properties: {} }
+                                },
+                                {
+                                    name: "resetBets",
+                                    description: "Reset all current bets",
+                                    parameters: { type: "object", properties: {} }
+                                },
+                                {
+                                    name: "enableAI",
+                                    description: "Enable AI automatic mode",
+                                    parameters: { type: "object", properties: {} }
+                                },
+                                {
+                                    name: "disableAI",
+                                    description: "Disable AI automatic mode",
+                                    parameters: { type: "object", properties: {} }
+                                },
+                                {
+                                    name: "setResult",
+                                    description: "Set the game result",
+                                    parameters: {
+                                        type: "object",
+                                        properties: {
+                                            result: {
+                                                type: "string",
+                                                enum: ["head", "tail", "burn"],
+                                                description: "The game result"
+                                            }
+                                        },
+                                        required: ["result"]
+                                    }
+                                },
+                                {
+                                    name: "addBoss",
+                                    description: "Add a new boss",
+                                    parameters: {
+                                        type: "object",
+                                        properties: {
+                                            name: {
+                                                type: "string",
+                                                description: "Boss name"
+                                            },
+                                            referralId: {
+                                                type: "string",
+                                                description: "Boss referral ID"
+                                            }
+                                        },
+                                        required: ["name", "referralId"]
+                                    }
+                                }
+                            ]
+                        }]
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.candidates && data.candidates[0].content.parts[0].functionCall) {
+                    const functionCall = data.candidates[0].content.parts[0].functionCall;
+                    const functionName = functionCall.name;
+                    const args = functionCall.args || {};
+                    
+                    // Execute the function
+                    let result = await executeAdminFunction(functionName, args);
+                    updateAIResponse(`✅ ${result}`, 'success');
+                    
+                } else if (data.candidates && data.candidates[0].content.parts[0].text) {
+                    // Fallback to text response
+                    const responseText = data.candidates[0].content.parts[0].text;
+                    try {
+                        const jsonResponse = JSON.parse(responseText);
+                        if (jsonResponse.action) {
+                            let result = await executeAdminFunction(jsonResponse.action, jsonResponse.params || []);
+                            updateAIResponse(`✅ ${jsonResponse.message || result}`, 'success');
+                        } else {
+                            updateAIResponse(responseText, 'info');
+                        }
+                    } catch {
+                        updateAIResponse(responseText, 'info');
+                    }
+                } else {
+                    updateAIResponse('माफ़ करें, मैं इस कमांड को समझ नहीं पाया। कृपया दूसरे शब्दों में कोशिश करें।', 'error');
+                }
+
+            } catch (error) {
+                console.error('AI Command Error:', error);
+                updateAIResponse('AI सेवा में त्रुटि हुई। कृपया बाद में कोशिश करें।', 'error');
+            }
+
+            // Clear input
+            aiCommandInput.value = '';
+        }
+
+        async function executeAdminFunction(functionName, args) {
+            try {
+                switch (functionName) {
+                    case 'setTimer':
+                        const seconds = Array.isArray(args) ? args[0] : args.seconds;
+                        if (seconds >= 10 && seconds <= 300) {
+                            timerInput.value = seconds;
+                            setGameTimer();
+                            return `टाइमर ${seconds} सेकंड पर सेट किया गया`;
+                        } else {
+                            return 'टाइमर 10 से 300 सेकंड के बीच होना चाहिए';
+                        }
+                        
+                    case 'startBetting':
+                        startBetting();
+                        return 'बेटिंग शुरू की गई';
+                        
+                    case 'resetBets':
+                        resetBets();
+                        return 'सभी बेट्स रीसेट की गईं';
+                        
+                    case 'enableAI':
+                        enableAI();
+                        return 'AI चालू की गई';
+                        
+                    case 'disableAI':
+                        disableAI();
+                        return 'AI बंद की गई';
+                        
+                    case 'setResult':
+                        const result = Array.isArray(args) ? args[0] : args.result;
+                        if (['head', 'tail', 'burn'].includes(result)) {
+                            setResult(result);
+                            const resultText = result === 'head' ? 'चित' : result === 'tail' ? 'पट' : 'बर्न';
+                            return `परिणाम सेट किया गया: ${resultText}`;
+                        } else {
+                            return 'परिणाम head, tail, या burn होना चाहिए';
+                        }
+                        
+                    case 'addBoss':
+                        const name = Array.isArray(args) ? args[0] : args.name;
+                        const referralId = Array.isArray(args) ? args[1] : args.referralId;
+                        if (name && referralId) {
+                            bossName.value = name;
+                            bossReferralId.value = referralId;
+                            addBoss();
+                            return `बॉस ${name} (ID: ${referralId}) जोड़ा गया`;
+                        } else {
+                            return 'बॉस का नाम और रेफरल ID दोनों चाहिए';
+                        }
+                        
+                    default:
+                        return 'अज्ञात कमांड';
+                }
+            } catch (error) {
+                return 'कमांड निष्पादन में त्रुटि: ' + error.message;
+            }
+        }
+
+        function updateAIResponse(message, type = 'info') {
+            const responseDiv = aiCommandResponse;
+            const timestamp = new Date().toLocaleTimeString('hi-IN');
+            
+            let icon = '💬';
+            let color = 'text-blue-400';
+            
+            switch (type) {
+                case 'success':
+                    icon = '✅';
+                    color = 'text-green-400';
+                    break;
+                case 'error':
+                    icon = '❌';
+                    color = 'text-red-400';
+                    break;
+                case 'processing':
+                    icon = '⏳';
+                    color = 'text-yellow-400';
+                    break;
+            }
+            
+            responseDiv.innerHTML = `
+                <div class="flex items-start space-x-2">
+                    <span class="text-lg">${icon}</span>
+                    <div class="flex-1">
+                        <p class="${color} font-medium">${message}</p>
+                        <p class="text-gray-400 text-xs mt-1">${timestamp}</p>
+                    </div>
+                </div>
+            `;
         }
 
         // Make functions globally available
