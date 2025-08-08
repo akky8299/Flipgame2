@@ -832,6 +832,32 @@
                 // Update online users count for current boss
                 updateOnlineUsersCount();
             }
+            
+            // Start real-time wallet listener for instant updates
+            startWalletListener();
+        }
+
+        function startWalletListener() {
+            if (!currentUser) return;
+            
+            // Listen for real-time wallet changes
+            database.ref(`users/${currentUser.uid}/wallet`).on('value', (snapshot) => {
+                const newBalance = snapshot.val();
+                if (newBalance !== null && newBalance !== undefined) {
+                    walletBalance.textContent = `₹${newBalance}`;
+                    document.getElementById('modalWalletBalance').textContent = `₹${newBalance}`;
+                }
+            });
+            
+            // Listen for profile updates
+            database.ref(`users/${currentUser.uid}`).on('value', (snapshot) => {
+                const userData = snapshot.val();
+                if (userData) {
+                    document.getElementById('profileProfit').textContent = `₹${userData.totalProfit || 0}`;
+                    document.getElementById('profileLoss').textContent = `₹${userData.totalLoss || 0}`;
+                    document.getElementById('profileGames').textContent = userData.gamesPlayed || 0;
+                }
+            });
         }
 
         function showGameScreen() {
@@ -911,11 +937,10 @@
                 return;
             }
             
-            // Check wallet balance
-            const userSnapshot = await database.ref(`users/${currentUser.uid}`).once('value');
-            const userData = userSnapshot.val();
+            // Get current wallet balance from display (real-time updated)
+            const currentBalance = parseInt(walletBalance.textContent.replace('₹', ''));
             
-            if (!userData || userData.wallet < selectedAmount) {
+            if (currentBalance < selectedAmount) {
                 showToast(currentLanguage === 'en' ? 
                     'Insufficient balance' : 
                     'अपर्याप्त बैलेंस', 'error');
@@ -923,8 +948,13 @@
             }
             
             try {
-                // Deduct amount from wallet
-                await database.ref(`users/${currentUser.uid}/wallet`).set(userData.wallet - selectedAmount);
+                // Immediately update wallet display for instant feedback
+                const newBalance = currentBalance - selectedAmount;
+                walletBalance.textContent = `₹${newBalance}`;
+                document.getElementById('modalWalletBalance').textContent = `₹${newBalance}`;
+                
+                // Update Firebase (this will trigger real-time listener)
+                await database.ref(`users/${currentUser.uid}/wallet`).set(newBalance);
                 
                 // Place bet
                 await database.ref(`currentBets/${currentUser.uid}`).set({
@@ -935,9 +965,6 @@
                 
                 userBet = { amount: selectedAmount, choice: choice };
                 
-                // Update wallet display
-                walletBalance.textContent = `₹${userData.wallet - selectedAmount}`;
-                
                 const choiceText = choice === 'head' ? 
                     (currentLanguage === 'en' ? 'HEAD' : 'चित') : 
                     (currentLanguage === 'en' ? 'TAIL' : 'पट');
@@ -947,6 +974,10 @@
                     `🎯 बेट लगी: ₹${selectedAmount} ${choiceText} पर`, 'success');
                 
             } catch (error) {
+                // Revert wallet display on error
+                walletBalance.textContent = `₹${currentBalance}`;
+                document.getElementById('modalWalletBalance').textContent = `₹${currentBalance}`;
+                
                 showToast(currentLanguage === 'en' ? 
                     'Error placing bet: ' + error.message : 
                     'बेट लगाने में त्रुटि: ' + error.message, 'error');
