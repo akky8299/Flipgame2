@@ -1379,16 +1379,16 @@
             queueDOMUpdate(() => {
                 updateWalletDisplay(userData.wallet || 0);
                 
-                // Update profile data if modal is open
-                const profileModal = document.getElementById('profileModal');
-                if (profileModal && !profileModal.classList.contains('hidden')) {
-                    document.getElementById('profileName').textContent = userData.name || 'Unknown';
-                    document.getElementById('profileEmail').textContent = userData.email || 'Unknown';
-                    document.getElementById('profileWallet').textContent = `₹${userData.wallet || 0}`;
-                    document.getElementById('profileProfit').textContent = `₹${userData.totalProfit || 0}`;
-                    document.getElementById('profileLoss').textContent = `₹${userData.totalLoss || 0}`;
-                    document.getElementById('profileGames').textContent = userData.gamesPlayed || 0;
-                }
+                // Always update profile data elements (whether modal is open or not)
+                const profileName = document.getElementById('profileName');
+                const profileProfit = document.getElementById('profileProfit');
+                const profileLoss = document.getElementById('profileLoss');
+                const profileGames = document.getElementById('profileGames');
+                
+                if (profileName) profileName.textContent = userData.name || 'Unknown';
+                if (profileProfit) profileProfit.textContent = `₹${userData.totalProfit || 0}`;
+                if (profileLoss) profileLoss.textContent = `₹${userData.totalLoss || 0}`;
+                if (profileGames) profileGames.textContent = userData.gamesPlayed || 0;
             });
         }
 
@@ -1806,66 +1806,70 @@
 
                 let userWon = false;
                 let winAmount = 0;
+                let userResultMessage = '';
 
                 if (result === 'burn') {
-                    // Return original bet amount
+                    // Return original bet amount for burn
                     winAmount = bet.amount;
                     userWon = true;
+                    userResultMessage = `<div style="font-size: 2rem; color: #F59E0B; font-weight: bold;">COIN BURNED!</div><div style="font-size: 1.2rem; color: #10B981; margin-top: 10px;">Congratulations! Your bet amount returned: ₹${winAmount}</div>`;
                 } else if (bet.choice === result) {
                     // Winner gets 2x the bet amount
                     winAmount = bet.amount * 2;
                     userWon = true;
-                }
-
-                if (winAmount > 0) {
-                    // Update user wallet
-                    const userSnapshot = await database.ref(`users/${currentUser.uid}`).once('value');
-                    const userData = userSnapshot.val();
-                    const newBalance = (userData.wallet || 0) + winAmount;
-                    
-                    await database.ref(`users/${currentUser.uid}`).update({
-                        wallet: newBalance,
-                        totalProfit: result !== 'burn' && userWon ? 
-                                    (userData.totalProfit || 0) + (winAmount - bet.amount) : 
-                                    (userData.totalProfit || 0),
-                        totalLoss: !userWon ? 
-                                  (userData.totalLoss || 0) + bet.amount : 
-                                  (userData.totalLoss || 0),
-                        gamesPlayed: (userData.gamesPlayed || 0) + 1
-                    });
-
-                    updateWalletDisplay(newBalance);
-                    loadUserDataOptimized(); // Refresh profile data
-                    
-                    // Show user-specific win message
-                    setTimeout(() => {
-                        showToast(`आपने ₹${winAmount} जीता!`, 'success');
-                    }, 3500); // Show after main result disappears
+                    userResultMessage = `<div style="font-size: 2rem; color: #10B981; font-weight: bold;">CONGRATULATIONS!</div><div style="font-size: 1.2rem; color: #10B981; margin-top: 10px;">You Win! Amount: ₹${winAmount}</div>`;
                 } else {
                     // User lost
-                    const userSnapshot = await database.ref(`users/${currentUser.uid}`).once('value');
-                    const userData = userSnapshot.val();
-                    
-                    await database.ref(`users/${currentUser.uid}`).update({
-                        totalLoss: (userData.totalLoss || 0) + bet.amount,
-                        gamesPlayed: (userData.gamesPlayed || 0) + 1
-                    });
-                    
-                    loadUserDataOptimized(); // Refresh profile data
-                    
-                    // Show user-specific loss message
-                    setTimeout(() => {
-                        showToast('आप हार गए!', 'error');
-                    }, 3500); // Show after main result disappears
+                    userResultMessage = `<div style="font-size: 2rem; color: #EF4444; font-weight: bold;">YOU LOST!</div><div style="font-size: 1.2rem; color: #EF4444; margin-top: 10px;">Better luck next time!</div>`;
                 }
 
-                // Unlock betting interface after result
+                // Update user data in Firebase
+                const userSnapshot = await database.ref(`users/${currentUser.uid}`).once('value');
+                const userData = userSnapshot.val();
+                
+                let updateData = {
+                    gamesPlayed: (userData.gamesPlayed || 0) + 1
+                };
+
+                if (winAmount > 0) {
+                    // User won or burn case
+                    const newBalance = (userData.wallet || 0) + winAmount;
+                    updateData.wallet = newBalance;
+                    
+                    if (result !== 'burn') {
+                        // Only add to profit if it's a real win (not burn)
+                        updateData.totalProfit = (userData.totalProfit || 0) + (winAmount - bet.amount);
+                    }
+                    
+                    // Update wallet display immediately
+                    updateWalletDisplay(newBalance);
+                } else {
+                    // User lost
+                    updateData.totalLoss = (userData.totalLoss || 0) + bet.amount;
+                }
+
+                // Update Firebase
+                await database.ref(`users/${currentUser.uid}`).update(updateData);
+                
+                // Refresh profile data
+                loadUserDataOptimized();
+                
+                // Show user-specific result after admin result disappears
                 setTimeout(() => {
-                    unlockBettingInterface();
-                }, 3000);
+                    const resultContent = document.getElementById('resultContent');
+                    resultContent.innerHTML = userResultMessage;
+                    resultDisplay.classList.add('show');
+                    
+                    // Hide user result after 3 seconds
+                    setTimeout(() => {
+                        resultDisplay.classList.remove('show');
+                        unlockBettingInterface(); // Unlock for next round
+                    }, 3000);
+                }, 3200); // Show after admin result disappears
 
             } catch (error) {
                 console.error('Error handling user bet result:', error);
+                showToast('Error processing your bet result', 'error');
             }
         }
 
