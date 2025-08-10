@@ -572,7 +572,7 @@
         const auth = firebase.auth();
         const database = firebase.database();
 
-        // Global variables
+        // Global variables for optimization
         let currentUser = null;
         let currentLanguage = 'en';
         let selectedBetAmount = 0;
@@ -580,6 +580,119 @@
         let countdownInterval = null;
         let userHasBet = false; // Track if user has placed a bet in current round
         let clickSound = null; // Audio object for click sound
+        
+        // Optimization variables for 1000 users
+        let dataCache = {
+            gameState: null,
+            betStats: null,
+            lastUpdate: 0
+        };
+        let updateThrottle = null;
+        let connectionRetryCount = 0;
+        let maxRetries = 3;
+        let isOnline = true;
+        let heartbeatInterval = null;
+        let lastHeartbeat = Date.now();
+        
+        // Debounce function for reducing Firebase calls
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+        
+        // Throttle function for limiting update frequency
+        function throttle(func, limit) {
+            let inThrottle;
+            return function() {
+                const args = arguments;
+                const context = this;
+                if (!inThrottle) {
+                    func.apply(context, args);
+                    inThrottle = true;
+                    setTimeout(() => inThrottle = false, limit);
+                }
+            }
+        }
+        
+        // Optimized Firebase listener management
+        const firebaseListeners = {
+            gameState: null,
+            betStats: null,
+            currentBets: null,
+            onlineUsers: null
+        };
+        
+        function cleanupFirebaseListeners() {
+            Object.keys(firebaseListeners).forEach(key => {
+                if (firebaseListeners[key]) {
+                    database.ref().off('value', firebaseListeners[key]);
+                    firebaseListeners[key] = null;
+                }
+            });
+        }
+        
+        // Connection monitoring
+        function initializeConnectionMonitoring() {
+            database.ref('.info/connected').on('value', (snapshot) => {
+                isOnline = snapshot.val();
+                if (isOnline) {
+                    connectionRetryCount = 0;
+                    updateConnectionStatus(true);
+                    startHeartbeat();
+                } else {
+                    updateConnectionStatus(false);
+                    stopHeartbeat();
+                }
+            });
+        }
+        
+        function updateConnectionStatus(online) {
+            const statusElement = document.getElementById('connectionStatus');
+            if (statusElement) {
+                statusElement.textContent = online ? 'Online' : 'Offline';
+                statusElement.className = online ? 'text-green-400' : 'text-red-400';
+            }
+        }
+        
+        function startHeartbeat() {
+            if (heartbeatInterval) clearInterval(heartbeatInterval);
+            
+            heartbeatInterval = setInterval(() => {
+                if (currentUser && isOnline) {
+                    lastHeartbeat = Date.now();
+                    database.ref(`onlineUsers/${currentUser.uid}`).set(lastHeartbeat);
+                    database.ref(`users/${currentUser.uid}/lastSeen`).set(lastHeartbeat);
+                }
+            }, 30000); // Update every 30 seconds instead of real-time
+        }
+        
+        function stopHeartbeat() {
+            if (heartbeatInterval) {
+                clearInterval(heartbeatInterval);
+                heartbeatInterval = null;
+            }
+        }
+        
+        // Optimized data fetching with caching
+        function getCachedData(key, maxAge = 5000) {
+            const now = Date.now();
+            if (dataCache[key] && (now - dataCache.lastUpdate) < maxAge) {
+                return dataCache[key];
+            }
+            return null;
+        }
+        
+        function setCachedData(key, data) {
+            dataCache[key] = data;
+            dataCache.lastUpdate = Date.now();
+        }
 
         // DOM elements
         const authScreen = document.getElementById('authScreen');
@@ -602,12 +715,195 @@
         const customAmountInput = document.getElementById('customAmount');
         const setCustomAmountBtn = document.getElementById('setCustomAmount');
 
-        // Initialize the application
+        // Initialize the application with optimizations
         document.addEventListener('DOMContentLoaded', function() {
             initializeClickSound();
             initializeEventListeners();
+            initializeConnectionMonitoring();
+            
+            // Initialize performance monitoring
+            initializePerformanceMonitoring();
+            
+            // Preload critical data
+            preloadCriticalData();
+            
             checkAuthState();
         });
+
+        // Performance monitoring for 1000 users
+        function initializePerformanceMonitoring() {
+            // Monitor memory usage
+            if (performance.memory) {
+                setInterval(() => {
+                    const memoryInfo = performance.memory;
+                    if (memoryInfo.usedJSHeapSize > 50 * 1024 * 1024) { // 50MB threshold
+                        console.warn('High memory usage detected, clearing cache');
+                        clearDataCache();
+                    }
+                }, 60000); // Check every minute
+            }
+            
+            // Monitor connection quality
+            if (navigator.connection) {
+                const connection = navigator.connection;
+                if (connection.effectiveType === 'slow-2g' || connection.effectiveType === '2g') {
+                    // Reduce update frequency for slow connections
+                    updateThrottle = 3000; // 3 seconds instead of 1
+                }
+            }
+        }
+
+        function preloadCriticalData() {
+            // Preload game state
+            database.ref('gameState').once('value').then((snapshot) => {
+                const gameState = snapshot.val();
+                if (gameState) {
+                    setCachedData('gameState', gameState);
+                }
+            });
+            
+            // Preload bet stats
+            database.ref('betStats').once('value').then((snapshot) => {
+                const betStats = snapshot.val();
+                if (betStats) {
+                    setCachedData('betStats', betStats);
+                }
+            });
+        }
+
+        function clearDataCache() {
+            dataCache = {
+                gameState: null,
+                betStats: null,
+                lastUpdate: 0
+            };
+            
+            // Force garbage collection if available
+            if (window.gc) {
+                window.gc();
+            }
+        }
+
+        // Optimized DOM updates with batching
+        const domUpdateQueue = [];
+        let domUpdateScheduled = false;
+
+        function queueDOMUpdate(updateFunction) {
+            domUpdateQueue.push(updateFunction);
+            
+            if (!domUpdateScheduled) {
+                domUpdateScheduled = true;
+                requestAnimationFrame(() => {
+                    // Batch all DOM updates
+                    domUpdateQueue.forEach(update => update());
+                    domUpdateQueue.length = 0;
+                    domUpdateScheduled = false;
+                });
+            }
+        }
+
+        // Optimized wallet display update
+        function updateWalletDisplay(balance) {
+            queueDOMUpdate(() => {
+                const walletElement = document.getElementById('walletBalance');
+                if (walletElement) {
+                    walletElement.textContent = `₹${balance}`;
+                }
+            });
+        }
+
+        // Optimized countdown display
+        function updateCountdownDisplay(countdown = gameCountdown) {
+            queueDOMUpdate(() => {
+                const countdownElement = document.getElementById('countdownDisplay');
+                if (countdownElement) {
+                    countdownElement.textContent = countdown.toString().padStart(2, '0');
+                }
+            });
+        }
+
+        // Connection status indicator
+        function addConnectionStatusIndicator() {
+            const header = document.querySelector('.flex.justify-between.items-center.mb-6');
+            if (header && !document.getElementById('connectionStatus')) {
+                const statusDiv = document.createElement('div');
+                statusDiv.className = 'flex items-center space-x-2 text-sm';
+                statusDiv.innerHTML = `
+                    <div class="w-2 h-2 rounded-full bg-green-400"></div>
+                    <span id="connectionStatus" class="text-green-400">Online</span>
+                `;
+                header.appendChild(statusDiv);
+            }
+        }
+
+        // Optimized Active Boss users loading with pagination
+        function loadActiveBossUsers() {
+            const selectedReferralId = document.getElementById('activeBossSelector').value;
+            const selectedBossUsers = document.getElementById('selectedBossUsers');
+            
+            if (!selectedReferralId) {
+                selectedBossUsers.innerHTML = '<p class="text-white text-center opacity-75">Select a boss to view online users</p>';
+                document.getElementById('onlineUsersCount').textContent = '0';
+                document.getElementById('modalOnlineCount').textContent = '0';
+                return;
+            }
+            
+            // Use pagination for large user lists
+            database.ref('users').orderByChild('referralId').equalTo(selectedReferralId).limitToFirst(50).on('value', (snapshot) => {
+                const users = snapshot.val() || {};
+                selectedBossUsers.innerHTML = '';
+                
+                let onlineCount = 0;
+                const userElements = [];
+                const now = Date.now();
+                
+                Object.entries(users).forEach(([userId, user]) => {
+                    const isOnline = user.lastSeen && (now - user.lastSeen) < 300000; // 5 minutes
+                    
+                    if (isOnline) {
+                        onlineCount++;
+                        if (onlineCount <= 20) { // Limit display to 20 users for performance
+                            const userElement = document.createElement('div');
+                            userElement.className = 'glass-card rounded-lg p-3 flex items-center justify-between mb-2';
+                            userElement.innerHTML = `
+                                <div class="flex items-center">
+                                    <div class="online-indicator mr-2"></div>
+                                    <div>
+                                        <p class="text-white font-semibold text-sm">${user.name || 'Unknown'}</p>
+                                        <p class="text-gray-300 text-xs">Wallet: ₹${user.wallet || 0}</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-green-400 text-xs">Online</p>
+                                </div>
+                            `;
+                            userElements.push(userElement);
+                        }
+                    }
+                });
+                
+                // Update both online counts
+                queueDOMUpdate(() => {
+                    document.getElementById('onlineUsersCount').textContent = onlineCount;
+                    document.getElementById('modalOnlineCount').textContent = onlineCount;
+                    
+                    if (userElements.length === 0) {
+                        selectedBossUsers.innerHTML = '<p class="text-white text-center opacity-75">No online users found for this boss</p>';
+                    } else {
+                        userElements.forEach(element => {
+                            selectedBossUsers.appendChild(element);
+                        });
+                        
+                        if (onlineCount > 20) {
+                            const moreElement = document.createElement('p');
+                            moreElement.className = 'text-white text-center opacity-75 text-sm';
+                            moreElement.textContent = `... and ${onlineCount - 20} more users online`;
+                            selectedBossUsers.appendChild(moreElement);
+                        }
+                    }
+                });
+            });
+        }
 
         function initializeClickSound() {
             // Create click sound using Web Audio API with better browser support
@@ -702,29 +998,72 @@
             // Active Boss listeners
             document.getElementById('activeBossSelector').addEventListener('change', loadActiveBossUsers);
 
-            // Betting listeners
-            bettingAmountButtons.forEach(button => {
+            // Betting listeners with improved mobile support
+            bettingAmountButtons.forEach((button, index) => {
+                // Remove any existing listeners
+                button.replaceWith(button.cloneNode(true));
+            });
+            
+            // Re-select buttons after cloning
+            const newBettingAmountButtons = document.querySelectorAll('.betting-amount');
+            
+            newBettingAmountButtons.forEach((button, index) => {
+                // Primary click event
                 button.addEventListener('click', function(e) {
                     e.preventDefault();
                     e.stopPropagation();
+                    e.stopImmediatePropagation();
+                    
                     if (!this.classList.contains('disabled')) {
                         playClickSound();
-                        selectBetAmount(parseInt(this.dataset.amount));
+                        const amount = parseInt(this.dataset.amount);
+                        console.log(`Button clicked: ₹${amount}`); // Debug log
+                        selectBetAmount(amount);
                     }
-                });
+                }, { passive: false });
                 
-                // Add touch event listeners for better mobile support
+                // Touch events for mobile
                 button.addEventListener('touchstart', function(e) {
+                    e.preventDefault();
+                    if (!this.classList.contains('disabled')) {
+                        this.style.transform = 'scale(0.95)';
+                        this.style.backgroundColor = 'rgba(34, 197, 94, 0.8)';
+                    }
+                }, { passive: false });
+                
+                button.addEventListener('touchend', function(e) {
+                    e.preventDefault();
+                    if (!this.classList.contains('disabled')) {
+                        this.style.transform = '';
+                        this.style.backgroundColor = '';
+                        
+                        // Trigger click after touch
+                        setTimeout(() => {
+                            playClickSound();
+                            const amount = parseInt(this.dataset.amount);
+                            console.log(`Touch button: ₹${amount}`); // Debug log
+                            selectBetAmount(amount);
+                        }, 50);
+                    }
+                }, { passive: false });
+                
+                // Mouse events for desktop
+                button.addEventListener('mousedown', function(e) {
                     if (!this.classList.contains('disabled')) {
                         this.style.transform = 'scale(0.95)';
                     }
-                }, { passive: true });
+                });
                 
-                button.addEventListener('touchend', function(e) {
+                button.addEventListener('mouseup', function(e) {
                     if (!this.classList.contains('disabled')) {
                         this.style.transform = '';
                     }
-                }, { passive: true });
+                });
+                
+                button.addEventListener('mouseleave', function(e) {
+                    this.style.transform = '';
+                    this.style.backgroundColor = '';
+                });
             });
 
             setCustomAmountBtn.addEventListener('click', function(e) {
@@ -967,22 +1306,114 @@
             auth.onAuthStateChanged(user => {
                 if (user) {
                     currentUser = user;
-                    showGameScreen();
-                    loadUserData();
+                    authScreen.classList.add('hidden');
+                    gameScreen.classList.remove('hidden');
+                    
+                    // Add connection status indicator
+                    addConnectionStatusIndicator();
+                    
+                    // Load user data with caching
+                    loadUserDataOptimized();
+                    
+                    // Start optimized game listeners
                     startGameListeners();
+                    
+                    // Start heartbeat
+                    startHeartbeat();
                 } else {
                     currentUser = null;
-                    showAuthScreen();
+                    authScreen.classList.remove('hidden');
+                    gameScreen.classList.add('hidden');
+                    
+                    // Cleanup listeners and intervals
+                    stopGameListeners();
+                    stopHeartbeat();
                 }
             });
         }
 
-        function showAuthScreen() {
-            authScreen.classList.remove('hidden');
-            gameScreen.classList.add('hidden');
+        async function loadUserDataOptimized() {
+            try {
+                // Check cache first
+                const cachedUserData = getCachedData('userData', 10000); // 10 second cache
+                if (cachedUserData) {
+                    updateUserInterface(cachedUserData);
+                    return;
+                }
+                
+                const snapshot = await database.ref(`users/${currentUser.uid}`).once('value');
+                const userData = snapshot.val();
+                
+                if (userData) {
+                    setCachedData('userData', userData);
+                    updateUserInterface(userData);
+                } else {
+                    // Create new user data
+                    const newUserData = {
+                        name: currentUser.displayName || 'User',
+                        email: currentUser.email,
+                        wallet: 0,
+                        totalProfit: 0,
+                        totalLoss: 0,
+                        gamesPlayed: 0,
+                        lastSeen: firebase.database.ServerValue.TIMESTAMP
+                    };
+                    
+                    await database.ref(`users/${currentUser.uid}`).set(newUserData);
+                    setCachedData('userData', newUserData);
+                    updateUserInterface(newUserData);
+                }
+            } catch (error) {
+                console.error('Error loading user data:', error);
+                showToast('Error loading user data', 'error');
+            }
         }
 
-        function showGameScreen() {
+        function updateUserInterface(userData) {
+            queueDOMUpdate(() => {
+                updateWalletDisplay(userData.wallet || 0);
+                
+                // Update profile data if modal is open
+                const profileModal = document.getElementById('profileModal');
+                if (profileModal && !profileModal.classList.contains('hidden')) {
+                    document.getElementById('profileName').textContent = userData.name || 'Unknown';
+                    document.getElementById('profileEmail').textContent = userData.email || 'Unknown';
+                    document.getElementById('profileWallet').textContent = `₹${userData.wallet || 0}`;
+                    document.getElementById('profileProfit').textContent = `₹${userData.totalProfit || 0}`;
+                    document.getElementById('profileLoss').textContent = `₹${userData.totalLoss || 0}`;
+                    document.getElementById('profileGames').textContent = userData.gamesPlayed || 0;
+                }
+            });
+        }
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            cleanupFirebaseListeners();
+            stopHeartbeat();
+            
+            // Mark user as offline
+            if (currentUser) {
+                database.ref(`onlineUsers/${currentUser.uid}`).remove();
+            }
+        });
+
+        // Cleanup on visibility change (tab switch)
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                // Reduce update frequency when tab is not visible
+                if (heartbeatInterval) {
+                    clearInterval(heartbeatInterval);
+                    heartbeatInterval = setInterval(() => {
+                        if (currentUser && isOnline) {
+                            database.ref(`users/${currentUser.uid}/lastSeen`).set(firebase.database.ServerValue.TIMESTAMP);
+                        }
+                    }, 60000); // Update every minute when hidden
+                }
+            } else {
+                // Resume normal frequency when tab becomes visible
+                startHeartbeat();
+            }
+        });  function showGameScreen() {
             authScreen.classList.add('hidden');
             gameScreen.classList.remove('hidden');
         }
@@ -1138,6 +1569,7 @@
             if (!selectedReferralId) {
                 selectedBossUsers.innerHTML = '<p class="text-white text-center opacity-75">Select a boss to view online users</p>';
                 document.getElementById('onlineUsersCount').textContent = '0';
+                document.getElementById('modalOnlineCount').textContent = '0';
                 return;
             }
             
@@ -1154,7 +1586,7 @@
                     if (isOnline) {
                         onlineCount++;
                         const userElement = document.createElement('div');
-                        userElement.className = 'glass-card rounded-lg p-3 flex items-center justify-between';
+                        userElement.className = 'glass-card rounded-lg p-3 flex items-center justify-between mb-2';
                         userElement.innerHTML = `
                             <div class="flex items-center">
                                 <div class="online-indicator mr-2"></div>
@@ -1171,8 +1603,9 @@
                     }
                 });
                 
-                // Update online count
+                // Update both online counts
                 document.getElementById('onlineUsersCount').textContent = onlineCount;
+                document.getElementById('modalOnlineCount').textContent = onlineCount;
                 
                 if (userElements.length === 0) {
                     selectedBossUsers.innerHTML = '<p class="text-white text-center opacity-75">No online users found for this boss</p>';
@@ -1246,9 +1679,13 @@
         }
 
         function startGameListeners() {
-            // Listen for game state changes
-            database.ref('gameState').on('value', (snapshot) => {
+            // Clean up existing listeners first
+            cleanupFirebaseListeners();
+            
+            // Optimized game state listener with throttling
+            firebaseListeners.gameState = database.ref('gameState').on('value', throttle((snapshot) => {
                 const gameState = snapshot.val() || {};
+                setCachedData('gameState', gameState);
                 
                 if (gameState.countdown !== undefined) {
                     gameCountdown = gameState.countdown;
@@ -1258,28 +1695,37 @@
                 if (gameState.result) {
                     handleGameResult(gameState.result);
                 }
-            });
+            }, 1000)); // Throttle to max 1 update per second
 
-            // Listen for user's bet status
-            database.ref(`currentBets/${currentUser.uid}`).on('value', (snapshot) => {
-                const bet = snapshot.val();
-                if (bet) {
-                    userHasBet = true;
-                    selectedBetAmount = bet.amount;
-                    selectedAmountDisplay.textContent = `₹${bet.amount}`;
-                    lockBettingInterface();
-                } else {
-                    userHasBet = false;
-                    unlockBettingInterface();
-                }
-            });
+            // Optimized user bet listener
+            if (currentUser) {
+                firebaseListeners.currentBets = database.ref(`currentBets/${currentUser.uid}`).on('value', (snapshot) => {
+                    const bet = snapshot.val();
+                    if (bet) {
+                        userHasBet = true;
+                        selectedBetAmount = bet.amount;
+                        selectedAmountDisplay.textContent = `₹${bet.amount}`;
+                        lockBettingInterface();
+                    } else {
+                        userHasBet = false;
+                        unlockBettingInterface();
+                    }
+                });
+            }
 
-            // Update user's last seen
-            setInterval(() => {
-                if (currentUser) {
-                    database.ref(`users/${currentUser.uid}/lastSeen`).set(firebase.database.ServerValue.TIMESTAMP);
+            // Optimized heartbeat with reduced frequency
+            if (heartbeatInterval) clearInterval(heartbeatInterval);
+            heartbeatInterval = setInterval(() => {
+                if (currentUser && isOnline) {
+                    const now = Date.now();
+                    // Only update if more than 25 seconds have passed
+                    if (now - lastHeartbeat > 25000) {
+                        lastHeartbeat = now;
+                        database.ref(`users/${currentUser.uid}/lastSeen`).set(firebase.database.ServerValue.TIMESTAMP);
+                        database.ref(`onlineUsers/${currentUser.uid}`).set(now);
+                    }
                 }
-            }, 30000); // Update every 30 seconds
+            }, 30000); // Update every 30 seconds instead of real-time
         }
 
         function updateCountdownDisplay() {
