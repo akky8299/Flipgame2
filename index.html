@@ -1716,7 +1716,9 @@
                     
                     // Handle user bet result separately if user has bet
                     if (currentUser && userHasBet) {
-                        handleUserBetResult(gameState.lastResult);
+                        setTimeout(() => {
+                            handleUserBetResult(gameState.lastResult);
+                        }, 3200); // Start processing user result after admin result
                     }
                 }
             });
@@ -1854,18 +1856,16 @@
                 // Refresh profile data
                 loadUserDataOptimized();
                 
-                // Show user-specific result after admin result disappears
+                // Show user-specific result immediately
+                const resultContent = document.getElementById('resultContent');
+                resultContent.innerHTML = userResultMessage;
+                resultDisplay.classList.add('show');
+                
+                // Hide user result after 3 seconds and unlock betting
                 setTimeout(() => {
-                    const resultContent = document.getElementById('resultContent');
-                    resultContent.innerHTML = userResultMessage;
-                    resultDisplay.classList.add('show');
-                    
-                    // Hide user result after 3 seconds
-                    setTimeout(() => {
-                        resultDisplay.classList.remove('show');
-                        unlockBettingInterface(); // Unlock for next round
-                    }, 3000);
-                }, 3200); // Show after admin result disappears
+                    resultDisplay.classList.remove('show');
+                    unlockBettingInterface(); // Unlock for next round
+                }, 3000);
 
             } catch (error) {
                 console.error('Error handling user bet result:', error);
