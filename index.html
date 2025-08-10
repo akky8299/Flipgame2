@@ -670,12 +670,16 @@
         document.getElementById('closeWithdraw').addEventListener('click', () => withdrawModal.classList.add('hidden'));
         document.getElementById('closeActiveBoss').addEventListener('click', () => activeBossModal.classList.add('hidden'));
         
-        // Wallet actions
-        document.getElementById('addMoneyBtn').addEventListener('click', () => {
+        // Wallet actions - Fixed event handling
+        document.getElementById('addMoneyBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
             walletModal.classList.add('hidden');
             addMoneyModal.classList.remove('hidden');
         });
-        document.getElementById('withdrawBtn').addEventListener('click', () => {
+        document.getElementById('withdrawBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
             walletModal.classList.add('hidden');
             withdrawModal.classList.remove('hidden');
         });
@@ -683,17 +687,17 @@
         document.getElementById('requestAddMoney').addEventListener('click', requestAddMoney);
         document.getElementById('requestWithdraw').addEventListener('click', requestWithdraw);
         
-        // Betting - Fixed event handling
-        document.querySelectorAll('.betting-amount').forEach(btn => {
-            btn.addEventListener('click', (e) => {
+        // Betting - Fixed event handling with proper delegation
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('betting-amount')) {
                 e.preventDefault();
                 e.stopPropagation();
-                selectedAmount = parseInt(btn.dataset.amount);
+                selectedAmount = parseInt(e.target.dataset.amount);
                 selectedAmountDisplay.textContent = `₹${selectedAmount}`;
                 showToast(currentLanguage === 'en' ? 
                     `Amount selected: ₹${selectedAmount}` : 
                     `राशि चुनी गई: ₹${selectedAmount}`, 'info');
-            });
+            }
         });
         
         document.getElementById('setCustomAmount').addEventListener('click', (e) => {
