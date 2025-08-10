@@ -56,13 +56,14 @@
         
         .betting-button {
             transition: all 0.3s ease;
+            cursor: pointer;
         }
         
-        .betting-button:hover {
+        .betting-button:hover:not(.disabled) {
             transform: scale(1.05);
         }
         
-        .betting-button:active {
+        .betting-button:active:not(.disabled) {
             transform: scale(0.95);
         }
         
@@ -114,6 +115,7 @@
         .disabled {
             opacity: 0.5;
             pointer-events: none;
+            cursor: not-allowed !important;
         }
         
         /* Toast Notification Styles */
@@ -171,6 +173,23 @@
         
         .result-display.show {
             opacity: 1;
+        }
+
+        /* Bet placed indicator */
+        .bet-placed {
+            background: linear-gradient(45deg, #10B981, #059669) !important;
+            border: 2px solid #34D399 !important;
+        }
+
+        /* Clickable wallet buttons */
+        .wallet-button {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .wallet-button:hover {
+            transform: scale(1.05);
+            background: rgba(255, 255, 255, 0.2);
         }
     </style>
 </head>
@@ -264,19 +283,19 @@
         <!-- Header -->
         <div class="flex justify-between items-center mb-6">
             <div class="flex items-center space-x-4">
-                <button id="profileBtn" class="glass-card p-3 rounded-lg text-white">
+                <button id="profileBtn" class="glass-card p-3 rounded-lg text-white wallet-button">
                     <i class="fas fa-user mr-2"></i>
                     <span data-en="Profile" data-hi="प्रोफाइल">Profile</span>
                 </button>
                 
-                <button id="activeBossBtn" class="glass-card p-3 rounded-lg text-white">
+                <button id="activeBossBtn" class="glass-card p-3 rounded-lg text-white wallet-button">
                     <i class="fas fa-crown mr-2"></i>
                     <span data-en="Active Boss" data-hi="एक्टिव बॉस">Active Boss</span>
                     <span id="onlineUsersCount" class="ml-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full">0</span>
                 </button>
             </div>
             
-            <button id="walletBtn" class="glass-card p-3 rounded-lg text-white flex items-center">
+            <button id="walletBtn" class="glass-card p-3 rounded-lg text-white flex items-center wallet-button">
                 <i class="fas fa-wallet mr-2"></i>
                 <span data-en="Wallet" data-hi="वॉलेट">Wallet</span>
                 <span id="walletBalance" class="ml-2 font-bold">₹0</span>
@@ -403,16 +422,16 @@
             
             <div class="text-center mb-6">
                 <p class="text-white text-sm opacity-75" data-en="Current Balance" data-hi="वर्तमान बैलेंस">Current Balance</p>
-                <p id="modalWalletBalance" class="text-white text-3xl font-bold">₹0</p>
+                <p id="walletModalBalance" class="text-white text-3xl font-bold">₹0</p>
             </div>
             
             <div class="space-y-4">
-                <button id="addMoneyBtn" class="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg">
+                <button id="addMoneyBtn" class="w-full wallet-button bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-semibold">
                     <i class="fas fa-plus mr-2"></i>
                     <span data-en="Add Money" data-hi="पैसे जोड़ें">Add Money</span>
                 </button>
                 
-                <button id="withdrawBtn" class="w-full bg-red-600 hover:bg-red-700 text-white py-3 rounded-lg">
+                <button id="withdrawBtn" class="w-full wallet-button bg-red-600 hover:bg-red-700 text-white py-3 rounded-lg font-semibold">
                     <i class="fas fa-minus mr-2"></i>
                     <span data-en="Withdraw" data-hi="निकालें">Withdraw</span>
                 </button>
@@ -431,10 +450,10 @@
             </div>
             
             <div class="space-y-4">
-                <input type="number" id="addAmount" min="200" placeholder="Minimum ₹200" 
+                <input type="number" id="addAmount" placeholder="Enter amount (₹100-₹10000)" min="100" max="10000" 
                        class="w-full p-3 rounded-lg bg-white bg-opacity-20 text-white placeholder-gray-300 border border-white border-opacity-30">
                 
-                <button id="requestAddMoney" class="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg">
+                <button id="confirmAddMoney" class="w-full wallet-button bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-semibold">
                     <span data-en="Request Add Money" data-hi="पैसे जोड़ने का अनुरोध">Request Add Money</span>
                 </button>
             </div>
@@ -452,28 +471,12 @@
             </div>
             
             <div class="space-y-4">
-                <input type="number" id="withdrawAmount" min="400" placeholder="Minimum ₹400" 
+                <input type="number" id="withdrawAmount" placeholder="Enter amount" min="100" 
                        class="w-full p-3 rounded-lg bg-white bg-opacity-20 text-white placeholder-gray-300 border border-white border-opacity-30">
                 
-                <button id="requestWithdraw" class="w-full bg-red-600 hover:bg-red-700 text-white py-3 rounded-lg">
+                <button id="confirmWithdraw" class="w-full wallet-button bg-red-600 hover:bg-red-700 text-white py-3 rounded-lg font-semibold">
                     <span data-en="Request Withdrawal" data-hi="निकासी का अनुरोध">Request Withdrawal</span>
                 </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Active Boss Modal -->
-    <div id="activeBossModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-        <div class="glass-card rounded-2xl p-6 w-full max-w-md">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-semibold text-white" data-en="Select Active Boss" data-hi="एक्टिव बॉस चुनें">Select Active Boss</h2>
-                <button id="closeActiveBoss" class="text-white text-xl">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            
-            <div id="bossesList" class="space-y-4">
-                <!-- Bosses will be loaded here -->
             </div>
         </div>
     </div>
@@ -491,9 +494,8 @@
             databaseURL: "https://flipcoin-1030e-default-rtdb.firebaseio.com",
             projectId: "flipcoin-1030e",
             storageBucket: "flipcoin-1030e.firebasestorage.app",
-            messagingSenderId: "485574721435",
-            appId: "1:485574721435:web:9c4713a57521128f122b3e",
-            measurementId: "G-JKG0KTMTBQ"
+            messagingSenderId: "1045334068734",
+            appId: "1:1045334068734:web:b8f8f8f8f8f8f8f8f8f8f8"
         };
 
         // Initialize Firebase
@@ -501,541 +503,435 @@
         const auth = firebase.auth();
         const database = firebase.database();
 
-        // Global Variables
+        // Global variables
         let currentUser = null;
         let currentLanguage = 'en';
-        let selectedAmount = 0;
+        let selectedBetAmount = 0;
+        let gameCountdown = 0;
         let countdownInterval = null;
-        let gameState = 'waiting';
-        let userBet = null;
-        let currentBossReferralId = null;
+        let userHasBet = false; // Track if user has placed a bet in current round
 
-        // DOM Elements
+        // DOM elements
         const authScreen = document.getElementById('authScreen');
         const gameScreen = document.getElementById('gameScreen');
         const loginForm = document.getElementById('loginForm');
         const signupForm = document.getElementById('signupForm');
-        
-        // Auth elements
-        const loginEmail = document.getElementById('loginEmail');
-        const loginPassword = document.getElementById('loginPassword');
-        const loginBtn = document.getElementById('loginBtn');
-        const signupName = document.getElementById('signupName');
-        const signupEmail = document.getElementById('signupEmail');
-        const signupPassword = document.getElementById('signupPassword');
-        const referralId = document.getElementById('referralId');
-        const signupBtn = document.getElementById('signupBtn');
-        const showSignup = document.getElementById('showSignup');
-        const showLogin = document.getElementById('showLogin');
-        
-        // Game elements
-        const langToggle = document.getElementById('langToggle');
-        const langText = document.getElementById('langText');
-        const profileBtn = document.getElementById('profileBtn');
-        const activeBossBtn = document.getElementById('activeBossBtn');
-        const walletBtn = document.getElementById('walletBtn');
-        const walletBalance = document.getElementById('walletBalance');
-        const countdownDisplay = document.getElementById('countdownDisplay');
-        const coinElement = document.getElementById('coinElement');
-        const bettingArea = document.getElementById('bettingArea');
-        const selectedAmountDisplay = document.getElementById('selectedAmount');
-        const betHeads = document.getElementById('betHeads');
-        const betTails = document.getElementById('betTails');
-        const gameStatus = document.getElementById('gameStatus');
-        const onlineUsersCount = document.getElementById('onlineUsersCount');
-        
-        // Modal elements
         const profileModal = document.getElementById('profileModal');
         const walletModal = document.getElementById('walletModal');
         const addMoneyModal = document.getElementById('addMoneyModal');
         const withdrawModal = document.getElementById('withdrawModal');
-        const activeBossModal = document.getElementById('activeBossModal');
-
-        // Toast and Result Display elements
-        const toast = document.getElementById('toast');
-        const toastIcon = document.getElementById('toastIcon');
-        const toastMessage = document.getElementById('toastMessage');
         const resultDisplay = document.getElementById('resultDisplay');
-        const resultContent = document.getElementById('resultContent');
+        const toast = document.getElementById('toast');
 
-        // Sound Functions
-        function playClickSound() {
-            // Create a simple click sound using Web Audio API
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-            
-            oscillator.frequency.value = 800;
-            oscillator.type = 'square';
-            
-            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
-            
-            oscillator.start(audioContext.currentTime);
-            oscillator.stop(audioContext.currentTime + 0.1);
+        // Betting elements
+        const bettingAmountButtons = document.querySelectorAll('.betting-amount');
+        const betHeadsBtn = document.getElementById('betHeads');
+        const betTailsBtn = document.getElementById('betTails');
+        const selectedAmountDisplay = document.getElementById('selectedAmount');
+        const customAmountInput = document.getElementById('customAmount');
+        const setCustomAmountBtn = document.getElementById('setCustomAmount');
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeEventListeners();
+            checkAuthState();
+        });
+
+        function initializeEventListeners() {
+            // Auth form listeners
+            document.getElementById('showSignup').addEventListener('click', showSignupForm);
+            document.getElementById('showLogin').addEventListener('click', showLoginForm);
+            document.getElementById('loginBtn').addEventListener('click', handleLogin);
+            document.getElementById('signupBtn').addEventListener('click', handleSignup);
+            document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+
+            // Modal listeners
+            document.getElementById('profileBtn').addEventListener('click', showProfile);
+            document.getElementById('closeProfile').addEventListener('click', hideProfile);
+            document.getElementById('walletBtn').addEventListener('click', showWallet);
+            document.getElementById('closeWallet').addEventListener('click', hideWallet);
+            document.getElementById('closeAddMoney').addEventListener('click', hideAddMoney);
+            document.getElementById('closeWithdraw').addEventListener('click', hideWithdraw);
+
+            // Wallet listeners
+            document.getElementById('addMoneyBtn').addEventListener('click', showAddMoney);
+            document.getElementById('withdrawBtn').addEventListener('click', showWithdraw);
+            document.getElementById('confirmAddMoney').addEventListener('click', handleAddMoney);
+            document.getElementById('confirmWithdraw').addEventListener('click', handleWithdraw);
+
+            // Betting listeners
+            bettingAmountButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    if (!this.classList.contains('disabled')) {
+                        selectBetAmount(parseInt(this.dataset.amount));
+                    }
+                });
+            });
+
+            setCustomAmountBtn.addEventListener('click', function() {
+                if (!this.classList.contains('disabled')) {
+                    setCustomBetAmount();
+                }
+            });
+
+            betHeadsBtn.addEventListener('click', function() {
+                if (!this.classList.contains('disabled')) {
+                    placeBet('head');
+                }
+            });
+
+            betTailsBtn.addEventListener('click', function() {
+                if (!this.classList.contains('disabled')) {
+                    placeBet('tail');
+                }
+            });
+
+            // Language toggle
+            document.getElementById('langToggle').addEventListener('click', toggleLanguage);
         }
 
-        // Toast Notification Function
+        function selectBetAmount(amount) {
+            if (userHasBet) {
+                showToast('आपने पहले से ही इस राउंड में दांव लगाया है!', 'error');
+                return;
+            }
+
+            selectedBetAmount = amount;
+            selectedAmountDisplay.textContent = `₹${amount}`;
+            
+            // Update button styles
+            bettingAmountButtons.forEach(btn => {
+                btn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                btn.classList.add('bg-green-600', 'hover:bg-green-700');
+            });
+            
+            // Highlight selected button
+            const selectedBtn = document.querySelector(`[data-amount="${amount}"]`);
+            if (selectedBtn) {
+                selectedBtn.classList.remove('bg-green-600', 'hover:bg-green-700');
+                selectedBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+            }
+        }
+
+        function setCustomBetAmount() {
+            if (userHasBet) {
+                showToast('आपने पहले से ही इस राउंड में दांव लगाया है!', 'error');
+                return;
+            }
+
+            const amount = parseInt(customAmountInput.value);
+            if (amount >= 10 && amount <= 2000) {
+                selectBetAmount(amount);
+                customAmountInput.value = '';
+            } else {
+                showToast('कृपया ₹10 से ₹2000 के बीच राशि दर्ज करें', 'error');
+            }
+        }
+
+        async function placeBet(choice) {
+            if (!currentUser) {
+                showToast('कृपया पहले लॉगिन करें', 'error');
+                return;
+            }
+
+            if (userHasBet) {
+                showToast('आपने पहले से ही इस राउंड में दांव लगाया है!', 'error');
+                return;
+            }
+
+            if (selectedBetAmount === 0) {
+                showToast('कृपया पहले दांव की राशि चुनें', 'error');
+                return;
+            }
+
+            // Check if user has sufficient balance
+            const userSnapshot = await database.ref(`users/${currentUser.uid}`).once('value');
+            const userData = userSnapshot.val();
+            
+            if (!userData || (userData.wallet || 0) < selectedBetAmount) {
+                showToast('अपर्याप्त बैलेंस', 'error');
+                return;
+            }
+
+            try {
+                // Deduct amount from wallet
+                const newBalance = (userData.wallet || 0) - selectedBetAmount;
+                await database.ref(`users/${currentUser.uid}`).update({
+                    wallet: newBalance
+                });
+
+                // Place bet
+                await database.ref(`currentBets/${currentUser.uid}`).set({
+                    choice: choice,
+                    amount: selectedBetAmount,
+                    timestamp: firebase.database.ServerValue.TIMESTAMP,
+                    userName: userData.name || 'Unknown'
+                });
+
+                // Lock betting for this user
+                userHasBet = true;
+                lockBettingInterface();
+
+                // Show success message
+                const choiceText = choice === 'head' ? 'चित' : 'पट';
+                showToast(`₹${selectedBetAmount} का दांव ${choiceText} पर लगाया गया!`, 'success');
+
+                // Update wallet display
+                updateWalletDisplay(newBalance);
+
+            } catch (error) {
+                console.error('Error placing bet:', error);
+                showToast('दांव लगाने में त्रुटि', 'error');
+            }
+        }
+
+        function lockBettingInterface() {
+            // Disable all betting buttons
+            bettingAmountButtons.forEach(btn => {
+                btn.classList.add('disabled');
+            });
+            
+            setCustomAmountBtn.classList.add('disabled');
+            betHeadsBtn.classList.add('disabled');
+            betTailsBtn.classList.add('disabled');
+            customAmountInput.disabled = true;
+
+            // Show bet placed indicator
+            if (selectedBetAmount > 0) {
+                const selectedBtn = document.querySelector(`[data-amount="${selectedBetAmount}"]`);
+                if (selectedBtn) {
+                    selectedBtn.classList.add('bet-placed');
+                }
+            }
+        }
+
+        function unlockBettingInterface() {
+            // Enable all betting buttons
+            bettingAmountButtons.forEach(btn => {
+                btn.classList.remove('disabled', 'bet-placed');
+            });
+            
+            setCustomAmountBtn.classList.remove('disabled');
+            betHeadsBtn.classList.remove('disabled');
+            betTailsBtn.classList.remove('disabled');
+            customAmountInput.disabled = false;
+
+            // Reset bet state
+            userHasBet = false;
+            selectedBetAmount = 0;
+            selectedAmountDisplay.textContent = '₹0';
+        }
+
+        function updateWalletDisplay(balance) {
+            document.getElementById('walletBalance').textContent = `₹${balance}`;
+            document.getElementById('walletModalBalance').textContent = `₹${balance}`;
+        }
+
         function showToast(message, type = 'info') {
-            playClickSound();
+            const toastMessage = document.getElementById('toastMessage');
+            const toastIcon = document.getElementById('toastIcon');
             
             toastMessage.textContent = message;
-            toast.className = `toast ${type}`;
             
-            // Set appropriate icon
-            switch(type) {
-                case 'success':
-                    toastIcon.className = 'fas fa-check-circle mr-3';
-                    break;
-                case 'error':
-                    toastIcon.className = 'fas fa-exclamation-circle mr-3';
-                    break;
-                case 'info':
-                default:
-                    toastIcon.className = 'fas fa-info-circle mr-3';
-                    break;
+            // Set icon based on type
+            if (type === 'success') {
+                toastIcon.className = 'fas fa-check-circle mr-3';
+                toast.className = 'toast success show';
+            } else if (type === 'error') {
+                toastIcon.className = 'fas fa-exclamation-circle mr-3';
+                toast.className = 'toast error show';
+            } else {
+                toastIcon.className = 'fas fa-info-circle mr-3';
+                toast.className = 'toast info show';
             }
             
-            toast.classList.add('show');
-            
+            // Hide after 3 seconds
             setTimeout(() => {
                 toast.classList.remove('show');
             }, 3000);
         }
 
-        // Result Display Function
-        function showResultDisplay(result) {
-            let message = '';
-            let resultClass = '';
+        function showResult(result, userWon, winAmount) {
+            const resultContent = document.getElementById('resultContent');
             
-            if (result === 'burn') {
-                message = currentLanguage === 'en' ? 
-                    '🔥 COIN BURNED! 🔥<br>Money Returned' : 
-                    '🔥 सिक्का जला! 🔥<br>पैसे वापस';
-                resultClass = 'text-red-400';
+            let resultText = '';
+            if (result === 'head') {
+                resultText = 'चित जीता!';
+            } else if (result === 'tail') {
+                resultText = 'पट जीता!';
             } else {
-                const resultText = result === 'head' ? 
-                    (currentLanguage === 'en' ? 'HEAD' : 'चित') : 
-                    (currentLanguage === 'en' ? 'TAIL' : 'पट');
-                message = `🎉 ${resultText} WINS! 🎉`;
-                resultClass = result === 'head' ? 'text-yellow-400' : 'text-gray-400';
+                resultText = 'सिक्का जल गया!';
             }
             
-            resultContent.innerHTML = `<div class="${resultClass}">${message}</div>`;
+            if (userWon && winAmount > 0) {
+                resultText += `<br><span style="color: #10B981;">आपने ₹${winAmount} जीता!</span>`;
+            } else if (userHasBet) {
+                resultText += `<br><span style="color: #EF4444;">आप हार गए!</span>`;
+            }
+            
+            resultContent.innerHTML = resultText;
             resultDisplay.classList.add('show');
             
+            // Hide after 3 seconds
             setTimeout(() => {
                 resultDisplay.classList.remove('show');
-            }, 4000);
+                unlockBettingInterface(); // Unlock for next round
+            }, 3000);
         }
 
-        // Add click sound to all buttons
-        document.addEventListener('click', (e) => {
-            if (e.target.tagName === 'BUTTON' || e.target.closest('button')) {
-                playClickSound();
-            }
-        });
-
-        // Event Listeners
-        langToggle.addEventListener('click', toggleLanguage);
-        showSignup.addEventListener('click', () => {
-            loginForm.classList.add('hidden');
-            signupForm.classList.remove('hidden');
-        });
-        showLogin.addEventListener('click', () => {
-            signupForm.classList.add('hidden');
-            loginForm.classList.remove('hidden');
-        });
-        
-        loginBtn.addEventListener('click', handleLogin);
-        signupBtn.addEventListener('click', handleSignup);
-        
-        profileBtn.addEventListener('click', () => profileModal.classList.remove('hidden'));
-        activeBossBtn.addEventListener('click', () => {
-            loadBosses();
-            activeBossModal.classList.remove('hidden');
-        });
-        walletBtn.addEventListener('click', () => {
-            document.getElementById('modalWalletBalance').textContent = walletBalance.textContent;
-            walletModal.classList.remove('hidden');
-        });
-        
-        // Close modals
-        document.getElementById('closeProfile').addEventListener('click', () => profileModal.classList.add('hidden'));
-        document.getElementById('closeWallet').addEventListener('click', () => walletModal.classList.add('hidden'));
-        document.getElementById('closeAddMoney').addEventListener('click', () => addMoneyModal.classList.add('hidden'));
-        document.getElementById('closeWithdraw').addEventListener('click', () => withdrawModal.classList.add('hidden'));
-        document.getElementById('closeActiveBoss').addEventListener('click', () => activeBossModal.classList.add('hidden'));
-        
-        // Wallet actions - Fixed event handling
-        document.getElementById('addMoneyBtn').addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            walletModal.classList.add('hidden');
-            addMoneyModal.classList.remove('hidden');
-        });
-        document.getElementById('withdrawBtn').addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            walletModal.classList.add('hidden');
-            withdrawModal.classList.remove('hidden');
-        });
-        
-        document.getElementById('requestAddMoney').addEventListener('click', requestAddMoney);
-        document.getElementById('requestWithdraw').addEventListener('click', requestWithdraw);
-        
-        // Betting - Fixed event handling with proper delegation
-        document.addEventListener('click', (e) => {
-            if (e.target.classList.contains('betting-amount')) {
-                e.preventDefault();
-                e.stopPropagation();
-                selectedAmount = parseInt(e.target.dataset.amount);
-                selectedAmountDisplay.textContent = `₹${selectedAmount}`;
-                showToast(currentLanguage === 'en' ? 
-                    `Amount selected: ₹${selectedAmount}` : 
-                    `राशि चुनी गई: ₹${selectedAmount}`, 'info');
-            }
-        });
-        
-        document.getElementById('setCustomAmount').addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            const amount = parseInt(document.getElementById('customAmount').value);
-            if (amount >= 10 && amount <= 2000) {
-                selectedAmount = amount;
-                selectedAmountDisplay.textContent = `₹${selectedAmount}`;
-                document.getElementById('customAmount').value = '';
-                showToast(currentLanguage === 'en' ? 
-                    `Custom amount set: ₹${selectedAmount}` : 
-                    `कस्टम राशि सेट: ₹${selectedAmount}`, 'success');
-            } else {
-                showToast(currentLanguage === 'en' ? 
-                    'Amount must be between ₹10 and ₹2000' : 
-                    'राशि ₹10 से ₹2000 के बीच होनी चाहिए', 'error');
-            }
-        });
-        
-        betHeads.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            placeBet('head');
-        });
-        betTails.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            placeBet('tail');
-        });
-        
-        document.getElementById('logoutBtn').addEventListener('click', handleLogout);
-
-        // Functions
-        function toggleLanguage() {
-            currentLanguage = currentLanguage === 'en' ? 'hi' : 'en';
-            langText.textContent = currentLanguage === 'en' ? 'EN' : 'HI';
-            updateLanguage();
-            showToast(currentLanguage === 'en' ? 
-                'Language changed to English' : 
-                'भाषा हिंदी में बदली गई', 'info');
-        }
-
-        function updateLanguage() {
-            document.querySelectorAll('[data-en]').forEach(element => {
-                element.textContent = element.getAttribute(`data-${currentLanguage}`);
-            });
-        }
-
-        async function handleLogin() {
-            const email = loginEmail.value.trim();
-            const password = loginPassword.value.trim();
-            
-            if (!email || !password) {
-                showToast(currentLanguage === 'en' ? 
-                    'Please enter email and password' : 
-                    'कृपया ईमेल और पासवर्ड दर्ज करें', 'error');
-                return;
-            }
-            
-            try {
-                const userCredential = await auth.signInWithEmailAndPassword(email, password);
-                currentUser = userCredential.user;
-                await initializeUser();
-                showGameScreen();
-                showToast(currentLanguage === 'en' ? 
-                    'Login successful!' : 
-                    'लॉगिन सफल!', 'success');
-            } catch (error) {
-                showToast(currentLanguage === 'en' ? 
-                    'Login error: ' + error.message : 
-                    'लॉगिन त्रुटि: ' + error.message, 'error');
-            }
-        }
-
-        async function handleSignup() {
-            const name = signupName.value.trim();
-            const email = signupEmail.value.trim();
-            const password = signupPassword.value.trim();
-            const refId = referralId.value.trim();
-            
-            if (!name || !email || !password) {
-                showToast(currentLanguage === 'en' ? 
-                    'Please fill all required fields' : 
-                    'कृपया सभी आवश्यक फ़ील्ड भरें', 'error');
-                return;
-            }
-            
-            try {
-                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-                currentUser = userCredential.user;
-                
-                // Create user profile
-                const userData = {
-                    name: name,
-                    email: email,
-                    wallet: refId ? 100 : 0, // Bonus for referral
-                    referralId: refId || null,
-                    totalProfit: 0,
-                    totalLoss: 0,
-                    gamesPlayed: 0,
-                    createdAt: firebase.database.ServerValue.TIMESTAMP,
-                    lastSeen: firebase.database.ServerValue.TIMESTAMP
-                };
-                
-                await database.ref(`users/${currentUser.uid}`).set(userData);
-                showGameScreen();
-                showToast(currentLanguage === 'en' ? 
-                    'Account created successfully!' : 
-                    'खाता सफलतापूर्वक बनाया गया!', 'success');
-            } catch (error) {
-                showToast(currentLanguage === 'en' ? 
-                    'Signup error: ' + error.message : 
-                    'साइनअप त्रुटि: ' + error.message, 'error');
-            }
-        }
-
-        async function initializeUser() {
-            if (!currentUser) return;
-            
-            // Update last seen
-            await database.ref(`users/${currentUser.uid}/lastSeen`).set(firebase.database.ServerValue.TIMESTAMP);
-            
-            // Load user data
-            const userSnapshot = await database.ref(`users/${currentUser.uid}`).once('value');
-            const userData = userSnapshot.val();
-            
-            if (userData) {
-                walletBalance.textContent = `₹${userData.wallet || 0}`;
-                document.getElementById('profileName').textContent = userData.name || 'User';
-                document.getElementById('profileProfit').textContent = `₹${userData.totalProfit || 0}`;
-                document.getElementById('profileLoss').textContent = `₹${userData.totalLoss || 0}`;
-                document.getElementById('profileGames').textContent = userData.gamesPlayed || 0;
-                currentBossReferralId = userData.referralId;
-                
-                // Update online users count for current boss
-                updateOnlineUsersCount();
-            }
-            
-            // Start real-time wallet listener for instant updates
-            startWalletListener();
-        }
-
-        function startWalletListener() {
-            if (!currentUser) return;
-            
-            // Listen for real-time wallet changes
-            database.ref(`users/${currentUser.uid}/wallet`).on('value', (snapshot) => {
-                const newBalance = snapshot.val();
-                if (newBalance !== null && newBalance !== undefined) {
-                    walletBalance.textContent = `₹${newBalance}`;
-                    document.getElementById('modalWalletBalance').textContent = `₹${newBalance}`;
+        // Authentication functions
+        function checkAuthState() {
+            auth.onAuthStateChanged(user => {
+                if (user) {
+                    currentUser = user;
+                    showGameScreen();
+                    loadUserData();
+                    startGameListeners();
+                } else {
+                    currentUser = null;
+                    showAuthScreen();
                 }
             });
-            
-            // Listen for profile updates
-            database.ref(`users/${currentUser.uid}`).on('value', (snapshot) => {
-                const userData = snapshot.val();
-                if (userData) {
-                    document.getElementById('profileProfit').textContent = `₹${userData.totalProfit || 0}`;
-                    document.getElementById('profileLoss').textContent = `₹${userData.totalLoss || 0}`;
-                    document.getElementById('profileGames').textContent = userData.gamesPlayed || 0;
-                }
-            });
+        }
+
+        function showAuthScreen() {
+            authScreen.classList.remove('hidden');
+            gameScreen.classList.add('hidden');
         }
 
         function showGameScreen() {
             authScreen.classList.add('hidden');
             gameScreen.classList.remove('hidden');
-            
-            // Start listening for game updates
-            listenForGameUpdates();
+        }
+
+        function showSignupForm() {
+            loginForm.classList.add('hidden');
+            signupForm.classList.remove('hidden');
+        }
+
+        function showLoginForm() {
+            signupForm.classList.add('hidden');
+            loginForm.classList.remove('hidden');
+        }
+
+        async function handleLogin() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            if (!email || !password) {
+                showToast('कृपया सभी फील्ड भरें', 'error');
+                return;
+            }
+
+            try {
+                await auth.signInWithEmailAndPassword(email, password);
+                showToast('सफलतापूर्वक लॉगिन हो गए', 'success');
+            } catch (error) {
+                showToast('लॉगिन त्रुटि: ' + error.message, 'error');
+            }
+        }
+
+        async function handleSignup() {
+            const name = document.getElementById('signupName').value;
+            const email = document.getElementById('signupEmail').value;
+            const password = document.getElementById('signupPassword').value;
+            const referralId = document.getElementById('referralId').value;
+
+            if (!name || !email || !password) {
+                showToast('कृपया सभी आवश्यक फील्ड भरें', 'error');
+                return;
+            }
+
+            try {
+                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                const user = userCredential.user;
+
+                // Save user data to database
+                await database.ref(`users/${user.uid}`).set({
+                    name: name,
+                    email: email,
+                    referralId: referralId || '',
+                    wallet: 0,
+                    totalProfit: 0,
+                    totalLoss: 0,
+                    gamesPlayed: 0,
+                    createdAt: firebase.database.ServerValue.TIMESTAMP
+                });
+
+                showToast('खाता सफलतापूर्वक बनाया गया', 'success');
+            } catch (error) {
+                showToast('साइनअप त्रुटि: ' + error.message, 'error');
+            }
         }
 
         function handleLogout() {
-            auth.signOut().then(() => {
-                currentUser = null;
-                gameScreen.classList.add('hidden');
-                authScreen.classList.remove('hidden');
-                
-                // Reset form values
-                loginEmail.value = '';
-                loginPassword.value = '';
-                signupName.value = '';
-                signupEmail.value = '';
-                signupPassword.value = '';
-                referralId.value = '';
-                
-                // Hide all modals
-                profileModal.classList.add('hidden');
-                walletModal.classList.add('hidden');
-                addMoneyModal.classList.add('hidden');
-                withdrawModal.classList.add('hidden');
-                activeBossModal.classList.add('hidden');
-                
-                showToast(currentLanguage === 'en' ? 
-                    'Logged out successfully' : 
-                    'सफलतापूर्वक लॉग आउट', 'info');
-            });
+            auth.signOut();
         }
 
-        function listenForGameUpdates() {
-            database.ref('gameState').on('value', (snapshot) => {
-                const gameData = snapshot.val();
-                if (!gameData) return;
-                
-                gameState = gameData.status || 'waiting';
-                
-                if (gameData.countdown) {
-                    countdownDisplay.textContent = gameData.countdown.toString().padStart(2, '0');
-                    
-                    if (gameData.status === 'betting') {
-                        bettingArea.classList.remove('disabled');
-                        gameStatus.innerHTML = currentLanguage === 'en' ? 
-                            '<span class="text-green-400">🎯 Betting is open!</span>' : 
-                            '<span class="text-green-400">🎯 बेटिंग खुली है!</span>';
-                    }
-                } else {
-                    countdownDisplay.textContent = '00';
-                }
-                
-                // Only show result when admin sends it (not predict)
-                if (gameData.result && gameData.status === 'result') {
-                    showResult(gameData.result);
-                }
-                
-                if (gameData.status === 'waiting') {
-                    bettingArea.classList.add('disabled');
-                    gameStatus.innerHTML = currentLanguage === 'en' ? 
-                        '<span class="text-gray-400">⏳ Waiting for next round...</span>' : 
-                        '<span class="text-gray-400">⏳ अगले राउंड का इंतजार...</span>';
-                }
-            });
-        }
+        async function loadUserData() {
+            if (!currentUser) return;
 
-        async function placeBet(choice) {
-            if (!currentUser || selectedAmount === 0 || gameState !== 'betting') {
-                showToast(currentLanguage === 'en' ? 
-                    'Cannot place bet right now' : 
-                    'अभी बेट नहीं लगा सकते', 'error');
-                return;
-            }
-            
-            // Get current wallet balance from display (real-time updated)
-            const currentBalance = parseInt(walletBalance.textContent.replace('₹', ''));
-            
-            if (currentBalance < selectedAmount) {
-                showToast(currentLanguage === 'en' ? 
-                    'Insufficient balance' : 
-                    'अपर्याप्त बैलेंस', 'error');
-                return;
-            }
-            
             try {
-                // Immediately update wallet display for instant feedback
-                const newBalance = currentBalance - selectedAmount;
-                walletBalance.textContent = `₹${newBalance}`;
-                document.getElementById('modalWalletBalance').textContent = `₹${newBalance}`;
-                
-                // Update Firebase (this will trigger real-time listener)
-                await database.ref(`users/${currentUser.uid}/wallet`).set(newBalance);
-                
-                // Place bet
-                await database.ref(`currentBets/${currentUser.uid}`).set({
-                    amount: selectedAmount,
-                    choice: choice,
-                    timestamp: firebase.database.ServerValue.TIMESTAMP
-                });
-                
-                userBet = { amount: selectedAmount, choice: choice };
-                
-                const choiceText = choice === 'head' ? 
-                    (currentLanguage === 'en' ? 'HEAD' : 'चित') : 
-                    (currentLanguage === 'en' ? 'TAIL' : 'पट');
-                
-                showToast(currentLanguage === 'en' ? 
-                    `🎯 Bet placed: ₹${selectedAmount} on ${choiceText}` : 
-                    `🎯 बेट लगी: ₹${selectedAmount} ${choiceText} पर`, 'success');
-                
+                const snapshot = await database.ref(`users/${currentUser.uid}`).once('value');
+                const userData = snapshot.val();
+
+                if (userData) {
+                    updateWalletDisplay(userData.wallet || 0);
+                    document.getElementById('profileName').textContent = userData.name || 'Unknown';
+                    document.getElementById('profileProfit').textContent = `₹${userData.totalProfit || 0}`;
+                    document.getElementById('profileLoss').textContent = `₹${userData.totalLoss || 0}`;
+                    document.getElementById('profileGames').textContent = userData.gamesPlayed || 0;
+                }
             } catch (error) {
-                // Revert wallet display on error
-                walletBalance.textContent = `₹${currentBalance}`;
-                document.getElementById('modalWalletBalance').textContent = `₹${currentBalance}`;
-                
-                showToast(currentLanguage === 'en' ? 
-                    'Error placing bet: ' + error.message : 
-                    'बेट लगाने में त्रुटि: ' + error.message, 'error');
+                console.error('Error loading user data:', error);
             }
         }
 
-        function showResult(result) {
-            // Animate coin
-            if (result === 'head') {
-                coinElement.classList.remove('flip-tails');
-                coinElement.classList.add('flip-heads');
-            } else if (result === 'tail') {
-                coinElement.classList.remove('flip-heads');
-                coinElement.classList.add('flip-tails');
-            }
-            
-            // Show result display
-            showResultDisplay(result);
-            
-            // Check if user won
-            if (userBet) {
-                setTimeout(() => {
-                    if (result === 'burn' || userBet.choice === result) {
-                        showToast(currentLanguage === 'en' ? 
-                            '🎉 Congratulations! You won!' : 
-                            '🎉 बधाई हो! आप जीते!', 'success');
-                    } else {
-                        showToast(currentLanguage === 'en' ? 
-                            '😔 Better luck next time!' : 
-                            '😔 अगली बार किस्मत आजमाएं!', 'error');
-                    }
-                    userBet = null;
-                }, 2000);
-            }
-            
-            // Reset after 5 seconds
-            setTimeout(() => {
-                coinElement.classList.remove('flip-heads', 'flip-tails');
-                gameStatus.innerHTML = currentLanguage === 'en' ? 
-                    '<span class="text-gray-400">⏳ Waiting for next round...</span>' : 
-                    '<span class="text-gray-400">⏳ अगले राउंड का इंतजार...</span>';
-            }, 5000);
+        // Modal functions
+        function showProfile() {
+            profileModal.classList.remove('hidden');
         }
 
-        async function requestAddMoney() {
+        function hideProfile() {
+            profileModal.classList.add('hidden');
+        }
+
+        function showWallet() {
+            walletModal.classList.remove('hidden');
+        }
+
+        function hideWallet() {
+            walletModal.classList.add('hidden');
+        }
+
+        function showAddMoney() {
+            walletModal.classList.add('hidden');
+            addMoneyModal.classList.remove('hidden');
+        }
+
+        function hideAddMoney() {
+            addMoneyModal.classList.add('hidden');
+            walletModal.classList.remove('hidden');
+        }
+
+        function showWithdraw() {
+            walletModal.classList.add('hidden');
+            withdrawModal.classList.remove('hidden');
+        }
+
+        function hideWithdraw() {
+            withdrawModal.classList.add('hidden');
+            walletModal.classList.remove('hidden');
+        }
+
+        async function handleAddMoney() {
             const amount = parseInt(document.getElementById('addAmount').value);
             
-            if (!amount || amount < 200) {
-                showToast(currentLanguage === 'en' ? 
-                    'Minimum amount is ₹200' : 
-                    'न्यूनतम राशि ₹200 है', 'error');
+            if (!amount || amount < 100 || amount > 10000) {
+                showToast('कृपया ₹100 से ₹10000 के बीच राशि दर्ज करें', 'error');
                 return;
             }
-            
+
             try {
                 await database.ref('walletRequests').push({
                     userId: currentUser.uid,
@@ -1045,139 +941,163 @@
                     status: 'pending',
                     timestamp: firebase.database.ServerValue.TIMESTAMP
                 });
-                
-                showToast(currentLanguage === 'en' ? 
-                    '✅ Add money request sent successfully!' : 
-                    '✅ पैसे जोड़ने का अनुरोध सफलतापूर्वक भेजा गया!', 'success');
-                addMoneyModal.classList.add('hidden');
+
+                showToast('पैसे जोड़ने का अनुरोध भेजा गया', 'success');
+                hideAddMoney();
                 document.getElementById('addAmount').value = '';
-                
             } catch (error) {
-                showToast(currentLanguage === 'en' ? 
-                    'Error: ' + error.message : 
-                    'त्रुटि: ' + error.message, 'error');
+                showToast('त्रुटि: ' + error.message, 'error');
             }
         }
 
-        async function requestWithdraw() {
+        async function handleWithdraw() {
             const amount = parseInt(document.getElementById('withdrawAmount').value);
             
-            if (!amount || amount < 400) {
-                showToast(currentLanguage === 'en' ? 
-                    'Minimum withdrawal amount is ₹400' : 
-                    'न्यूनतम निकासी राशि ₹400 है', 'error');
+            if (!amount || amount < 100) {
+                showToast('कृपया न्यूनतम ₹100 राशि दर्ज करें', 'error');
                 return;
             }
-            
-            // Check balance
+
+            // Check current balance
             const userSnapshot = await database.ref(`users/${currentUser.uid}`).once('value');
             const userData = userSnapshot.val();
             
-            if (!userData || userData.wallet < amount) {
-                showToast(currentLanguage === 'en' ? 
-                    'Insufficient balance' : 
-                    'अपर्याप्त बैलेंस', 'error');
+            if (!userData || (userData.wallet || 0) < amount) {
+                showToast('अपर्याप्त बैलेंस', 'error');
                 return;
             }
-            
+
             try {
                 await database.ref('walletRequests').push({
                     userId: currentUser.uid,
-                    userName: userData.name,
+                    userName: userData.name || 'Unknown',
                     type: 'withdraw',
                     amount: amount,
                     status: 'pending',
                     timestamp: firebase.database.ServerValue.TIMESTAMP
                 });
-                
-                showToast(currentLanguage === 'en' ? 
-                    '✅ Withdrawal request sent successfully!' : 
-                    '✅ निकासी का अनुरोध सफलतापूर्वक भेजा गया!', 'success');
-                withdrawModal.classList.add('hidden');
+
+                showToast('निकासी का अनुरोध भेजा गया', 'success');
+                hideWithdraw();
                 document.getElementById('withdrawAmount').value = '';
-                
             } catch (error) {
-                showToast(currentLanguage === 'en' ? 
-                    'Error: ' + error.message : 
-                    'त्रुटि: ' + error.message, 'error');
+                showToast('त्रुटि: ' + error.message, 'error');
             }
         }
 
-        function loadBosses() {
-            database.ref('bosses').once('value', (snapshot) => {
-                const bosses = snapshot.val() || {};
-                const bossesList = document.getElementById('bossesList');
-                bossesList.innerHTML = '';
+        function startGameListeners() {
+            // Listen for game state changes
+            database.ref('gameState').on('value', (snapshot) => {
+                const gameState = snapshot.val() || {};
                 
-                if (Object.keys(bosses).length === 0) {
-                    bossesList.innerHTML = '<p class="text-white text-center opacity-75">No bosses available</p>';
-                    return;
+                if (gameState.countdown !== undefined) {
+                    gameCountdown = gameState.countdown;
+                    updateCountdownDisplay();
                 }
-                
-                Object.entries(bosses).forEach(([bossId, boss]) => {
-                    const bossElement = document.createElement('div');
-                    bossElement.className = 'glass-card rounded-lg p-4 cursor-pointer hover:bg-white hover:bg-opacity-20';
-                    bossElement.innerHTML = `
-                        <h4 class="text-white font-semibold">${boss.name}</h4>
-                        <p class="text-gray-300 text-sm">Referral ID: ${boss.referralId}</p>
-                    `;
-                    
-                    bossElement.addEventListener('click', () => {
-                        selectBoss(boss.referralId, boss.name);
-                    });
-                    
-                    bossesList.appendChild(bossElement);
-                });
+
+                if (gameState.result) {
+                    handleGameResult(gameState.result);
+                }
             });
+
+            // Listen for user's bet status
+            database.ref(`currentBets/${currentUser.uid}`).on('value', (snapshot) => {
+                const bet = snapshot.val();
+                if (bet) {
+                    userHasBet = true;
+                    selectedBetAmount = bet.amount;
+                    selectedAmountDisplay.textContent = `₹${bet.amount}`;
+                    lockBettingInterface();
+                } else {
+                    userHasBet = false;
+                    unlockBettingInterface();
+                }
+            });
+
+            // Update user's last seen
+            setInterval(() => {
+                if (currentUser) {
+                    database.ref(`users/${currentUser.uid}/lastSeen`).set(firebase.database.ServerValue.TIMESTAMP);
+                }
+            }, 30000); // Update every 30 seconds
         }
 
-        async function selectBoss(referralId, bossName) {
+        function updateCountdownDisplay() {
+            document.getElementById('countdownDisplay').textContent = gameCountdown.toString().padStart(2, '0');
+        }
+
+        async function handleGameResult(result) {
+            if (!currentUser || !userHasBet) return;
+
             try {
-                await database.ref(`users/${currentUser.uid}/referralId`).set(referralId);
-                currentBossReferralId = referralId;
-                updateOnlineUsersCount();
-                showToast(currentLanguage === 'en' ? 
-                    `✅ Boss selected: ${bossName}` : 
-                    `✅ बॉस चुना गया: ${bossName}`, 'success');
-                activeBossModal.classList.add('hidden');
+                const betSnapshot = await database.ref(`currentBets/${currentUser.uid}`).once('value');
+                const bet = betSnapshot.val();
+                
+                if (!bet) return;
+
+                let userWon = false;
+                let winAmount = 0;
+
+                if (result === 'burn') {
+                    // Return original bet amount
+                    winAmount = bet.amount;
+                    userWon = true;
+                } else if (bet.choice === result) {
+                    // Winner gets 2x the bet amount
+                    winAmount = bet.amount * 2;
+                    userWon = true;
+                }
+
+                if (winAmount > 0) {
+                    // Update user wallet
+                    const userSnapshot = await database.ref(`users/${currentUser.uid}`).once('value');
+                    const userData = userSnapshot.val();
+                    const newBalance = (userData.wallet || 0) + winAmount;
+                    
+                    await database.ref(`users/${currentUser.uid}`).update({
+                        wallet: newBalance,
+                        totalProfit: result !== 'burn' && userWon ? 
+                                    (userData.totalProfit || 0) + (winAmount - bet.amount) : 
+                                    (userData.totalProfit || 0),
+                        totalLoss: !userWon ? 
+                                  (userData.totalLoss || 0) + bet.amount : 
+                                  (userData.totalLoss || 0),
+                        gamesPlayed: (userData.gamesPlayed || 0) + 1
+                    });
+
+                    updateWalletDisplay(newBalance);
+                    loadUserData(); // Refresh profile data
+                }
+
+                // Show result
+                showResult(result, userWon, winAmount);
+
+                // Animate coin
+                const coin = document.getElementById('coinElement');
+                if (result === 'head') {
+                    coin.classList.remove('flip-tails');
+                    coin.classList.add('flip-heads');
+                } else if (result === 'tail') {
+                    coin.classList.remove('flip-heads');
+                    coin.classList.add('flip-tails');
+                }
+
             } catch (error) {
-                showToast(currentLanguage === 'en' ? 
-                    'Error selecting boss: ' + error.message : 
-                    'बॉस चुनने में त्रुटि: ' + error.message, 'error');
+                console.error('Error handling game result:', error);
             }
         }
 
-        function updateOnlineUsersCount() {
-            if (!currentBossReferralId) {
-                onlineUsersCount.textContent = '0';
-                return;
-            }
+        function toggleLanguage() {
+            currentLanguage = currentLanguage === 'en' ? 'hi' : 'en';
+            document.getElementById('langText').textContent = currentLanguage.toUpperCase();
             
-            database.ref('users').orderByChild('referralId').equalTo(currentBossReferralId).on('value', (snapshot) => {
-                const users = snapshot.val() || {};
-                let onlineCount = 0;
-                
-                Object.values(users).forEach(user => {
-                    if (user.lastSeen && (Date.now() - user.lastSeen) < 300000) { // 5 minutes
-                        onlineCount++;
-                    }
-                });
-                
-                onlineUsersCount.textContent = onlineCount;
+            // Update all translatable elements
+            const elements = document.querySelectorAll('[data-en][data-hi]');
+            elements.forEach(element => {
+                element.textContent = element.getAttribute(`data-${currentLanguage}`);
             });
         }
-
-        // Initialize on page load
-        auth.onAuthStateChanged((user) => {
-            if (user) {
-                currentUser = user;
-                initializeUser();
-                showGameScreen();
-            }
-        });
-
-        // Update language on load
-        updateLanguage();
     </script>
 </body>
 </html>
+
