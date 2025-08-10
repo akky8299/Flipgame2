@@ -1273,22 +1273,25 @@
             }, 3000);
         }
 
-        function showResult(result, userWon, winAmount) {
+        function showResult(result, userWon = null, winAmount = 0) {
             const resultContent = document.getElementById('resultContent');
             
             let resultText = '';
             if (result === 'head') {
-                resultText = 'चित जीता!';
+                resultText = 'चित जीता! / HEAD WINS!';
             } else if (result === 'tail') {
-                resultText = 'पट जीता!';
-            } else {
-                resultText = 'सिक्का जल गया!';
+                resultText = 'पट जीता! / TAIL WINS!';
+            } else if (result === 'burn') {
+                resultText = 'सिक्का जल गया! / COIN BURNED!';
             }
             
-            if (userWon && winAmount > 0) {
-                resultText += `<br><span style="color: #10B981;">आपने ₹${winAmount} जीता!</span>`;
-            } else if (userHasBet) {
-                resultText += `<br><span style="color: #EF4444;">आप हार गए!</span>`;
+            // Only show user-specific result if user has bet
+            if (userHasBet && userWon !== null) {
+                if (userWon && winAmount > 0) {
+                    resultText += `<br><span style="color: #10B981;">आपने ₹${winAmount} जीता!</span>`;
+                } else {
+                    resultText += `<br><span style="color: #EF4444;">आप हार गए!</span>`;
+                }
             }
             
             resultContent.innerHTML = resultText;
@@ -1297,7 +1300,10 @@
             // Hide after 3 seconds
             setTimeout(() => {
                 resultDisplay.classList.remove('show');
-                unlockBettingInterface(); // Unlock for next round
+                // Only unlock if user had bet, otherwise keep interface as is
+                if (userHasBet) {
+                    unlockBettingInterface(); // Unlock for next round
+                }
             }, 3000);
         }
 
@@ -1682,22 +1688,40 @@
             // Clean up existing listeners first
             cleanupFirebaseListeners();
             
-            // Optimized game state listener with throttling
-            firebaseListeners.gameState = database.ref('gameState').on('value', throttle((snapshot) => {
+            // Game state listener - FIXED for result display
+            firebaseListeners.gameState = database.ref('gameState').on('value', (snapshot) => {
                 const gameState = snapshot.val() || {};
                 setCachedData('gameState', gameState);
                 
+                // Handle countdown updates
                 if (gameState.countdown !== undefined) {
                     gameCountdown = gameState.countdown;
                     updateCountdownDisplay();
                 }
 
-                if (gameState.result) {
-                    handleGameResult(gameState.result);
+                // Handle result display - FIXED
+                if (gameState.lastResult) {
+                    // Show result immediately when admin sets it
+                    showResult(gameState.lastResult);
+                    
+                    // Animate coin based on result
+                    const coin = document.getElementById('coinElement');
+                    if (gameState.lastResult === 'head') {
+                        coin.classList.remove('flip-tails');
+                        coin.classList.add('flip-heads');
+                    } else if (gameState.lastResult === 'tail') {
+                        coin.classList.remove('flip-heads');
+                        coin.classList.add('flip-tails');
+                    }
+                    
+                    // Handle user bet result if user has bet
+                    if (currentUser && userHasBet) {
+                        handleGameResult(gameState.lastResult);
+                    }
                 }
-            }, 1000)); // Throttle to max 1 update per second
+            });
 
-            // Optimized user bet listener
+            // User bet listener
             if (currentUser) {
                 firebaseListeners.currentBets = database.ref(`currentBets/${currentUser.uid}`).on('value', (snapshot) => {
                     const bet = snapshot.val();
@@ -1728,8 +1752,24 @@
             }, 30000); // Update every 30 seconds instead of real-time
         }
 
-        function updateCountdownDisplay() {
-            document.getElementById('countdownDisplay').textContent = gameCountdown.toString().padStart(2, '0');
+        function updateCountdownDisplay(countdown = gameCountdown) {
+            // Smooth countdown display without batching for real-time feel
+            const countdownElement = document.getElementById('countdownDisplay');
+            if (countdownElement) {
+                countdownElement.textContent = countdown.toString().padStart(2, '0');
+                
+                // Add visual feedback for countdown
+                if (countdown <= 5 && countdown > 0) {
+                    countdownElement.style.color = '#EF4444'; // Red for urgency
+                    countdownElement.style.transform = 'scale(1.1)';
+                } else if (countdown <= 10 && countdown > 5) {
+                    countdownElement.style.color = '#F59E0B'; // Orange for warning
+                    countdownElement.style.transform = 'scale(1.05)';
+                } else {
+                    countdownElement.style.color = '#EF4444'; // Default red
+                    countdownElement.style.transform = 'scale(1)';
+                }
+            }
         }
 
         async function handleGameResult(result) {
