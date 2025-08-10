@@ -57,6 +57,19 @@
         .betting-button {
             transition: all 0.3s ease;
             cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            touch-action: manipulation;
+            min-height: 44px; /* Minimum touch target size for mobile */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
         }
         
         .betting-button:hover:not(.disabled) {
@@ -65,6 +78,31 @@
         
         .betting-button:active:not(.disabled) {
             transform: scale(0.95);
+        }
+
+        /* Mobile specific improvements */
+        @media (max-width: 768px) {
+            .betting-button {
+                min-height: 48px;
+                font-size: 14px;
+                padding: 12px 8px;
+            }
+            
+            .betting-amount {
+                font-size: 16px; /* Prevent zoom on iOS */
+            }
+        }
+
+        /* Touch device improvements */
+        @media (hover: none) and (pointer: coarse) {
+            .betting-button:hover {
+                transform: none;
+            }
+            
+            .betting-button:active:not(.disabled) {
+                transform: scale(0.95);
+                background-color: rgba(255, 255, 255, 0.1);
+            }
         }
         
         .online-indicator {
@@ -481,6 +519,28 @@
         </div>
     </div>
 
+    <!-- Active Boss Modal -->
+    <div id="activeBossModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="glass-card rounded-2xl p-6 w-full max-w-md">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold text-white" data-en="Select Active Boss" data-hi="एक्टिव बॉस चुनें">Select Active Boss</h2>
+                <button id="closeActiveBoss" class="text-white text-xl">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-4">
+                <select id="activeBossSelector" class="w-full p-3 rounded-lg bg-white bg-opacity-20 text-white border border-white border-opacity-30">
+                    <option value="">Select a Boss</option>
+                </select>
+                
+                <div id="selectedBossUsers" class="max-h-60 overflow-y-auto space-y-2">
+                    <p class="text-white text-center opacity-75">Select a boss to view online users</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
@@ -644,6 +704,12 @@
                 return;
             }
 
+            // Check if countdown is 0 or less - prevent betting
+            if (gameCountdown <= 0) {
+                showToast('समय समाप्त! अब दांव नहीं लगा सकते', 'error');
+                return;
+            }
+
             // Check if user has sufficient balance
             const userSnapshot = await database.ref(`users/${currentUser.uid}`).once('value');
             const userData = userSnapshot.val();
@@ -654,6 +720,15 @@
             }
 
             try {
+                // Double check countdown before deducting money
+                const gameStateSnapshot = await database.ref('gameState/countdown').once('value');
+                const currentCountdown = gameStateSnapshot.val() || 0;
+                
+                if (currentCountdown <= 0) {
+                    showToast('समय समाप्त! अब दांव नहीं लगा सकते', 'error');
+                    return;
+                }
+
                 // Deduct amount from wallet
                 const newBalance = (userData.wallet || 0) - selectedBetAmount;
                 await database.ref(`users/${currentUser.uid}`).update({
