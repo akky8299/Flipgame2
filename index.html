@@ -367,11 +367,11 @@
                 
                 <!-- Betting Amounts -->
                 <div class="grid grid-cols-5 gap-2 mb-4">
-                    <button class="betting-amount betting-button bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg" data-amount="10">₹10</button>
-                    <button class="betting-amount betting-button bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg" data-amount="20">₹20</button>
-                    <button class="betting-amount betting-button bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg" data-amount="50">₹50</button>
-                    <button class="betting-amount betting-button bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg" data-amount="100">₹100</button>
-                    <button class="betting-amount betting-button bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg" data-amount="500">₹500</button>
+                    <button class="betting-amount betting-button bg-green-600 hover:bg-green-700 text-white py-3 px-2 rounded-lg font-semibold text-sm" data-amount="10">₹10</button>
+                    <button class="betting-amount betting-button bg-green-600 hover:bg-green-700 text-white py-3 px-2 rounded-lg font-semibold text-sm" data-amount="20">₹20</button>
+                    <button class="betting-amount betting-button bg-green-600 hover:bg-green-700 text-white py-3 px-2 rounded-lg font-semibold text-sm" data-amount="50">₹50</button>
+                    <button class="betting-amount betting-button bg-green-600 hover:bg-green-700 text-white py-3 px-2 rounded-lg font-semibold text-sm" data-amount="100">₹100</button>
+                    <button class="betting-amount betting-button bg-green-600 hover:bg-green-700 text-white py-3 px-2 rounded-lg font-semibold text-sm" data-amount="500">₹500</button>
                 </div>
                 
                 <!-- Custom Amount -->
@@ -521,21 +521,30 @@
 
     <!-- Active Boss Modal -->
     <div id="activeBossModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-        <div class="glass-card rounded-2xl p-6 w-full max-w-md">
+        <div class="glass-card rounded-2xl p-6 w-full max-w-lg">
             <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-semibold text-white" data-en="Select Active Boss" data-hi="एक्टिव बॉस चुनें">Select Active Boss</h2>
+                <h2 class="text-xl font-semibold text-white" data-en="Active Boss & Online Users" data-hi="एक्टिव बॉस और ऑनलाइन यूजर">Active Boss & Online Users</h2>
                 <button id="closeActiveBoss" class="text-white text-xl">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
             
             <div class="space-y-4">
-                <select id="activeBossSelector" class="w-full p-3 rounded-lg bg-white bg-opacity-20 text-white border border-white border-opacity-30">
-                    <option value="">Select a Boss</option>
-                </select>
+                <div>
+                    <label class="text-white text-sm font-medium mb-2 block">Select Boss:</label>
+                    <select id="activeBossSelector" class="w-full p-3 rounded-lg bg-white bg-opacity-20 text-white border border-white border-opacity-30">
+                        <option value="">Select a Boss</option>
+                    </select>
+                </div>
                 
-                <div id="selectedBossUsers" class="max-h-60 overflow-y-auto space-y-2">
-                    <p class="text-white text-center opacity-75">Select a boss to view online users</p>
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="text-white text-sm font-medium">Online Users:</label>
+                        <span id="modalOnlineCount" class="bg-green-500 text-white text-xs px-2 py-1 rounded-full">0</span>
+                    </div>
+                    <div id="selectedBossUsers" class="max-h-60 overflow-y-auto space-y-2 bg-black bg-opacity-20 rounded-lg p-3">
+                        <p class="text-white text-center opacity-75">Select a boss to view online users</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -570,6 +579,7 @@
         let gameCountdown = 0;
         let countdownInterval = null;
         let userHasBet = false; // Track if user has placed a bet in current round
+        let clickSound = null; // Audio object for click sound
 
         // DOM elements
         const authScreen = document.getElementById('authScreen');
@@ -580,6 +590,7 @@
         const walletModal = document.getElementById('walletModal');
         const addMoneyModal = document.getElementById('addMoneyModal');
         const withdrawModal = document.getElementById('withdrawModal');
+        const activeBossModal = document.getElementById('activeBossModal');
         const resultDisplay = document.getElementById('resultDisplay');
         const toast = document.getElementById('toast');
 
@@ -593,9 +604,76 @@
 
         // Initialize the application
         document.addEventListener('DOMContentLoaded', function() {
+            initializeClickSound();
             initializeEventListeners();
             checkAuthState();
         });
+
+        function initializeClickSound() {
+            // Create click sound using Web Audio API with better browser support
+            try {
+                let audioContext = null;
+                
+                // Initialize audio context on first user interaction
+                function initAudioContext() {
+                    if (!audioContext) {
+                        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                        
+                        // Resume audio context if suspended (required by some browsers)
+                        if (audioContext.state === 'suspended') {
+                            audioContext.resume();
+                        }
+                    }
+                    return audioContext;
+                }
+                
+                // Create a simple click sound
+                clickSound = function() {
+                    try {
+                        const ctx = initAudioContext();
+                        if (!ctx) return;
+                        
+                        const oscillator = ctx.createOscillator();
+                        const gainNode = ctx.createGain();
+                        
+                        oscillator.connect(gainNode);
+                        gainNode.connect(ctx.destination);
+                        
+                        // Create a "tick" sound
+                        oscillator.frequency.setValueAtTime(1000, ctx.currentTime);
+                        oscillator.frequency.exponentialRampToValueAtTime(500, ctx.currentTime + 0.05);
+                        
+                        gainNode.gain.setValueAtTime(0.1, ctx.currentTime);
+                        gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05);
+                        
+                        oscillator.start(ctx.currentTime);
+                        oscillator.stop(ctx.currentTime + 0.05);
+                    } catch (error) {
+                        console.log('Error creating sound:', error);
+                    }
+                };
+                
+                // Initialize audio context on first click
+                document.addEventListener('click', function initAudio() {
+                    initAudioContext();
+                    document.removeEventListener('click', initAudio);
+                }, { once: true });
+                
+            } catch (error) {
+                console.log('Audio not supported:', error);
+                clickSound = null;
+            }
+        }
+
+        function playClickSound() {
+            if (clickSound) {
+                try {
+                    clickSound();
+                } catch (error) {
+                    console.log('Error playing sound:', error);
+                }
+            }
+        }
 
         function initializeEventListeners() {
             // Auth form listeners
@@ -612,6 +690,8 @@
             document.getElementById('closeWallet').addEventListener('click', hideWallet);
             document.getElementById('closeAddMoney').addEventListener('click', hideAddMoney);
             document.getElementById('closeWithdraw').addEventListener('click', hideWithdraw);
+            document.getElementById('activeBossBtn').addEventListener('click', showActiveBoss);
+            document.getElementById('closeActiveBoss').addEventListener('click', hideActiveBoss);
 
             // Wallet listeners
             document.getElementById('addMoneyBtn').addEventListener('click', showAddMoney);
@@ -619,29 +699,57 @@
             document.getElementById('confirmAddMoney').addEventListener('click', handleAddMoney);
             document.getElementById('confirmWithdraw').addEventListener('click', handleWithdraw);
 
+            // Active Boss listeners
+            document.getElementById('activeBossSelector').addEventListener('change', loadActiveBossUsers);
+
             // Betting listeners
             bettingAmountButtons.forEach(button => {
-                button.addEventListener('click', function() {
+                button.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
                     if (!this.classList.contains('disabled')) {
+                        playClickSound();
                         selectBetAmount(parseInt(this.dataset.amount));
                     }
                 });
+                
+                // Add touch event listeners for better mobile support
+                button.addEventListener('touchstart', function(e) {
+                    if (!this.classList.contains('disabled')) {
+                        this.style.transform = 'scale(0.95)';
+                    }
+                }, { passive: true });
+                
+                button.addEventListener('touchend', function(e) {
+                    if (!this.classList.contains('disabled')) {
+                        this.style.transform = '';
+                    }
+                }, { passive: true });
             });
 
-            setCustomAmountBtn.addEventListener('click', function() {
+            setCustomAmountBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
                 if (!this.classList.contains('disabled')) {
+                    playClickSound();
                     setCustomBetAmount();
                 }
             });
 
-            betHeadsBtn.addEventListener('click', function() {
+            betHeadsBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
                 if (!this.classList.contains('disabled')) {
+                    playClickSound();
                     placeBet('head');
                 }
             });
 
-            betTailsBtn.addEventListener('click', function() {
+            betTailsBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
                 if (!this.classList.contains('disabled')) {
+                    playClickSound();
                     placeBet('tail');
                 }
             });
@@ -997,6 +1105,83 @@
         function hideWithdraw() {
             withdrawModal.classList.add('hidden');
             walletModal.classList.remove('hidden');
+        }
+
+        function showActiveBoss() {
+            activeBossModal.classList.remove('hidden');
+            loadActiveBossList();
+        }
+
+        function hideActiveBoss() {
+            activeBossModal.classList.add('hidden');
+        }
+
+        function loadActiveBossList() {
+            database.ref('bosses').on('value', (snapshot) => {
+                const bosses = snapshot.val() || {};
+                const activeBossSelector = document.getElementById('activeBossSelector');
+                activeBossSelector.innerHTML = '<option value="">Select a Boss</option>';
+                
+                Object.entries(bosses).forEach(([bossId, boss]) => {
+                    const option = document.createElement('option');
+                    option.value = boss.referralId;
+                    option.textContent = boss.name;
+                    activeBossSelector.appendChild(option);
+                });
+            });
+        }
+
+        function loadActiveBossUsers() {
+            const selectedReferralId = document.getElementById('activeBossSelector').value;
+            const selectedBossUsers = document.getElementById('selectedBossUsers');
+            
+            if (!selectedReferralId) {
+                selectedBossUsers.innerHTML = '<p class="text-white text-center opacity-75">Select a boss to view online users</p>';
+                document.getElementById('onlineUsersCount').textContent = '0';
+                return;
+            }
+            
+            database.ref('users').orderByChild('referralId').equalTo(selectedReferralId).on('value', (snapshot) => {
+                const users = snapshot.val() || {};
+                selectedBossUsers.innerHTML = '';
+                
+                let onlineCount = 0;
+                const userElements = [];
+                
+                Object.entries(users).forEach(([userId, user]) => {
+                    const isOnline = user.lastSeen && (Date.now() - user.lastSeen) < 300000; // 5 minutes
+                    
+                    if (isOnline) {
+                        onlineCount++;
+                        const userElement = document.createElement('div');
+                        userElement.className = 'glass-card rounded-lg p-3 flex items-center justify-between';
+                        userElement.innerHTML = `
+                            <div class="flex items-center">
+                                <div class="online-indicator mr-2"></div>
+                                <div>
+                                    <p class="text-white font-semibold text-sm">${user.name || 'Unknown'}</p>
+                                    <p class="text-gray-300 text-xs">Wallet: ₹${user.wallet || 0}</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-green-400 text-xs">Online</p>
+                            </div>
+                        `;
+                        userElements.push(userElement);
+                    }
+                });
+                
+                // Update online count
+                document.getElementById('onlineUsersCount').textContent = onlineCount;
+                
+                if (userElements.length === 0) {
+                    selectedBossUsers.innerHTML = '<p class="text-white text-center opacity-75">No online users found for this boss</p>';
+                } else {
+                    userElements.forEach(element => {
+                        selectedBossUsers.appendChild(element);
+                    });
+                }
+            });
         }
 
         async function handleAddMoney() {
