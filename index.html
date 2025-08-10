@@ -1688,7 +1688,7 @@
             // Clean up existing listeners first
             cleanupFirebaseListeners();
             
-            // Game state listener - FIXED for result display
+            // Game state listener - RESTORED to original behavior
             firebaseListeners.gameState = database.ref('gameState').on('value', (snapshot) => {
                 const gameState = snapshot.val() || {};
                 setCachedData('gameState', gameState);
@@ -1699,10 +1699,10 @@
                     updateCountdownDisplay();
                 }
 
-                // Handle result display - FIXED
+                // Handle admin forced results - RESTORED original behavior
                 if (gameState.lastResult) {
-                    // Show result immediately when admin sets it
-                    showResult(gameState.lastResult);
+                    // Show result to ALL users immediately when admin forces it
+                    showAdminResult(gameState.lastResult);
                     
                     // Animate coin based on result
                     const coin = document.getElementById('coinElement');
@@ -1714,9 +1714,9 @@
                         coin.classList.add('flip-tails');
                     }
                     
-                    // Handle user bet result if user has bet
+                    // Handle user bet result separately if user has bet
                     if (currentUser && userHasBet) {
-                        handleGameResult(gameState.lastResult);
+                        handleUserBetResult(gameState.lastResult);
                     }
                 }
             });
@@ -1772,7 +1772,30 @@
             }
         }
 
-        async function handleGameResult(result) {
+        // Show admin forced result to ALL users (like before)
+        function showAdminResult(result) {
+            const resultContent = document.getElementById('resultContent');
+            
+            let resultText = '';
+            if (result === 'head') {
+                resultText = '<div style="font-size: 2.5rem; color: #FFD700; font-weight: bold;">HEAD WINS!</div><div style="font-size: 1.5rem; color: #FFF; margin-top: 10px;">चित जीता!</div>';
+            } else if (result === 'tail') {
+                resultText = '<div style="font-size: 2.5rem; color: #C0C0C0; font-weight: bold;">TAIL WINS!</div><div style="font-size: 1.5rem; color: #FFF; margin-top: 10px;">पट जीता!</div>';
+            } else if (result === 'burn') {
+                resultText = '<div style="font-size: 2.5rem; color: #EF4444; font-weight: bold;">COIN BURNED!</div><div style="font-size: 1.5rem; color: #FFF; margin-top: 10px;">सिक्का जल गया!</div>';
+            }
+            
+            resultContent.innerHTML = resultText;
+            resultDisplay.classList.add('show');
+            
+            // Hide after 3 seconds
+            setTimeout(() => {
+                resultDisplay.classList.remove('show');
+            }, 3000);
+        }
+
+        // Handle user bet result separately (wallet updates etc.)
+        async function handleUserBetResult(result) {
             if (!currentUser || !userHasBet) return;
 
             try {
@@ -1812,24 +1835,37 @@
                     });
 
                     updateWalletDisplay(newBalance);
-                    loadUserData(); // Refresh profile data
+                    loadUserDataOptimized(); // Refresh profile data
+                    
+                    // Show user-specific win message
+                    setTimeout(() => {
+                        showToast(`आपने ₹${winAmount} जीता!`, 'success');
+                    }, 3500); // Show after main result disappears
+                } else {
+                    // User lost
+                    const userSnapshot = await database.ref(`users/${currentUser.uid}`).once('value');
+                    const userData = userSnapshot.val();
+                    
+                    await database.ref(`users/${currentUser.uid}`).update({
+                        totalLoss: (userData.totalLoss || 0) + bet.amount,
+                        gamesPlayed: (userData.gamesPlayed || 0) + 1
+                    });
+                    
+                    loadUserDataOptimized(); // Refresh profile data
+                    
+                    // Show user-specific loss message
+                    setTimeout(() => {
+                        showToast('आप हार गए!', 'error');
+                    }, 3500); // Show after main result disappears
                 }
 
-                // Show result
-                showResult(result, userWon, winAmount);
-
-                // Animate coin
-                const coin = document.getElementById('coinElement');
-                if (result === 'head') {
-                    coin.classList.remove('flip-tails');
-                    coin.classList.add('flip-heads');
-                } else if (result === 'tail') {
-                    coin.classList.remove('flip-heads');
-                    coin.classList.add('flip-tails');
-                }
+                // Unlock betting interface after result
+                setTimeout(() => {
+                    unlockBettingInterface();
+                }, 3000);
 
             } catch (error) {
-                console.error('Error handling game result:', error);
+                console.error('Error handling user bet result:', error);
             }
         }
 
