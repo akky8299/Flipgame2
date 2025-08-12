@@ -1,1359 +1,368 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="hi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CoinCoin - Admin Panel</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
-        
-        * {
-            font-family: 'Poppins', sans-serif;
-        }
-        
-        .admin-container {
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            min-height: 100vh;
-        }
-        
-        .glass-card {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-        
-        .hidden {
-            display: none;
-        }
-        
-        .online-indicator {
-            width: 10px;
-            height: 10px;
-            background: #10B981;
-            border-radius: 50%;
-            animation: pulse 2s infinite;
-        }
-        
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.3; }
-            100% { opacity: 1; }
-        }
-        
-        .countdown-timer {
-            font-size: 2rem;
-            font-weight: bold;
-            color: #EF4444;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-        }
-        
-        .admin-button {
-            transition: all 0.3s ease;
-        }
-        
-        .admin-button:hover {
-            transform: scale(1.05);
-        }
-        
-        .admin-button:active {
-            transform: scale(0.95);
-        }
-        
-        .stats-card {
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(15px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-        }
-        
-        .fade-in {
-            animation: fadeIn 0.5s ease-in;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Panel - CoinFlip</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+    body { background: #121212; color: white; }
+    .container { max-width: 1200px; margin: auto; padding: 20px; }
+    h1, h2 { text-align: center; margin: 20px 0; color: #00ccff; }
+    button { padding: 10px 15px; margin: 5px; border: none; border-radius: 6px; cursor: pointer; }
+    .btn-primary { background: #007bff; color: white; }
+    .btn-success { background: #28a745; color: white; }
+    .btn-danger { background: #dc3545; color: white; }
+    .btn-warning { background: #ffc107; color: black; }
+    input, select { padding: 10px; margin: 10px; border-radius: 6px; border: 1px solid #444; width: 200px; }
+    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+    th, td { padding: 12px; text-align: left; border-bottom: 1px solid #444; }
+    th { background: #222; }
+    .card { background: #1e1e2f; padding: 20px; margin: 20px 0; border-radius: 10px; }
+    .login { text-align: center; margin-top: 100px; }
+    .countdown { font-size: 24px; color: #ffc107; margin: 10px; }
+    .ai-status { color: #0f0; font-weight: bold; }
+  </style>
 </head>
-<body class="admin-container">
+<body>
+  <div class="container">
+    <h1 id="adminTitle">एडमिन पैनल</h1>
 
-    <!-- Admin Login Screen -->
-    <div id="adminLoginScreen" class="min-h-screen flex items-center justify-center p-4">
-        <div class="glass-card rounded-2xl p-8 w-full max-w-md">
-            <h1 class="text-4xl font-bold text-center text-white mb-8">
-                <i class="fas fa-shield-alt mr-2"></i>Admin Panel
-            </h1>
-            
-            <div class="space-y-4">
-                <input type="email" id="adminEmail" placeholder="Admin Email" 
-                       class="w-full p-3 rounded-lg bg-white bg-opacity-20 text-white placeholder-gray-300 border border-white border-opacity-30">
-                
-                <input type="password" id="adminPassword" placeholder="Admin Password" 
-                       class="w-full p-3 rounded-lg bg-white bg-opacity-20 text-white placeholder-gray-300 border border-white border-opacity-30">
-                
-                <button id="adminLoginBtn" class="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 rounded-lg transition duration-300">
-                    <i class="fas fa-sign-in-alt mr-2"></i>Admin Login
-                </button>
-            </div>
-        </div>
+    <!-- Login Screen -->
+    <div id="loginScreen" class="login">
+      <h2>एडमिन के रूप में साइन इन करें</h2>
+      <button id="adminLogin" class="btn-primary">Google से लॉगिन करें</button>
+      <p id="loginStatus">केवल अधिकृत एडमिन को प्रवेश अनुमति है</p>
     </div>
 
-    <!-- Main Admin Dashboard -->
-    <div id="adminDashboard" class="hidden min-h-screen p-4">
-        
-        <!-- Header -->
-        <div class="flex justify-between items-center mb-6">
-            <h1 class="text-3xl font-bold text-white">
-                <i class="fas fa-tachometer-alt mr-2"></i>Admin Dashboard
-            </h1>
-            
-            <div class="flex items-center space-x-4">
-                <div class="text-white text-right">
-                    <p class="text-sm opacity-75">Admin</p>
-                    <p id="adminName" class="font-semibold">Administrator</p>
-                </div>
-                <button id="adminLogoutBtn" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg">
-                    <i class="fas fa-sign-out-alt mr-2"></i>Logout
-                </button>
-            </div>
-        </div>
+    <!-- Admin Panel -->
+    <div id="adminPanel" style="display:none;">
+      <div class="card">
+        <h2 id="countdownTitle">उलटी गिनती सेट करें (सेकंड में)</h2>
+        <input type="number" id="countdownInput" placeholder="उदा. 60" value="60" />
+        <button id="startCountdown" class="btn-primary">बेट शुरू करें</button>
+        <button id="resetBets" class="btn-warning">बेट रीसेट करें</button>
+        <div class="countdown" id="countdownDisplay">अगला राउंड: --</div>
+      </div>
 
-        <!-- Navigation Tabs -->
-        <div class="glass-card rounded-xl p-2 mb-6">
-            <div class="flex space-x-2">
-                <button id="gameControlTab" class="tab-button flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg font-semibold">
-                    <i class="fas fa-gamepad mr-2"></i>Game Control
-                </button>
-                <button id="bossManagementTab" class="tab-button flex-1 bg-gray-600 text-white py-2 px-4 rounded-lg font-semibold">
-                    <i class="fas fa-crown mr-2"></i>Boss Management
-                </button>
-                <button id="userManagementTab" class="tab-button flex-1 bg-gray-600 text-white py-2 px-4 rounded-lg font-semibold">
-                    <i class="fas fa-users mr-2"></i>User Management
-                </button>
-                <button id="walletRequestsTab" class="tab-button flex-1 bg-gray-600 text-white py-2 px-4 rounded-lg font-semibold">
-                    <i class="fas fa-wallet mr-2"></i>Wallet Requests
-                </button>
-            </div>
-        </div>
+      <div class="card">
+        <h2 id="bossTitle">बॉस प्रबंधन</h2>
+        <input type="text" id="bossName" placeholder="बॉस का नाम" />
+        <input type="text" id="bossRefId" placeholder="रेफरल आईडी" />
+        <button id="addBoss" class="btn-success">बॉस जोड़ें</button>
+        <select id="bossList">
+          <option value="">बॉस चुनें</option>
+        </select>
+        <button id="removeBoss" class="btn-danger">हटाएं</button>
+      </div>
 
-        <!-- Game Control Panel -->
-        <div id="gameControlPanel" class="tab-content">
-            
-            <!-- Live Game Stats -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                <div class="stats-card rounded-xl p-4 text-center">
-                    <i class="fas fa-users text-3xl text-blue-400 mb-2"></i>
-                    <p class="text-white text-sm opacity-75">Total Players Online</p>
-                    <p id="livePlayersCount" class="text-white text-2xl font-bold">0</p>
-                </div>
-                
-                <div class="stats-card rounded-xl p-4 text-center">
-                    <i class="fas fa-coins text-3xl text-yellow-400 mb-2"></i>
-                    <p class="text-white text-sm opacity-75">Head Bets</p>
-                    <p id="liveHeadBets" class="text-white text-2xl font-bold">₹0</p>
-                </div>
-                
-                <div class="stats-card rounded-xl p-4 text-center">
-                    <i class="fas fa-coins text-3xl text-gray-400 mb-2"></i>
-                    <p class="text-white text-sm opacity-75">Tail Bets</p>
-                    <p id="liveTailBets" class="text-white text-2xl font-bold">₹0</p>
-                </div>
-                
-                <div class="stats-card rounded-xl p-4 text-center">
-                    <i class="fas fa-chart-line text-3xl text-green-400 mb-2"></i>
-                    <p class="text-white text-sm opacity-75">Total Bet Amount</p>
-                    <p id="liveTotalBets" class="text-white text-2xl font-bold">₹0</p>
-                </div>
-            </div>
+      <div class="card">
+        <h2 id="liveTitle">लाइव बेटिंग डेटा</h2>
+        <table id="liveTable">
+          <tr>
+            <th>चित (Heads)</th>
+            <td id="headsAmount">₹0</td>
+          </tr>
+          <tr>
+            <th>पट (Tails)</th>
+            <td id="tailsAmount">₹0</td>
+          </tr>
+          <tr>
+            <th>कुल बेट</th>
+            <td id="totalBet">₹0</td>
+          </tr>
+          <tr>
+            <th>कुल यूजर</th>
+            <td id="totalUsers">0</td>
+          </tr>
+        </table>
+      </div>
 
-            <!-- Game Control -->
-            <div class="glass-card rounded-2xl p-6 mb-6">
-                <h3 class="text-white text-xl font-semibold mb-4">
-                    <i class="fas fa-cogs mr-2"></i>Game Control
-                </h3>
-                
-                <!-- Timer Control -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                    <div>
-                        <label class="text-white text-sm font-medium mb-2 block">Set Timer (Seconds)</label>
-                        <div class="flex space-x-2">
-                            <input type="number" id="timerInput" min="10" max="300" value="30" 
-                                   class="flex-1 p-3 rounded-lg bg-white bg-opacity-20 text-white border border-white border-opacity-30">
-                            <button id="setTimerBtn" class="admin-button bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg">
-                                <i class="fas fa-clock mr-2"></i>Set
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div class="text-center">
-                        <p class="text-white text-sm font-medium mb-2">Current Countdown</p>
-                        <div id="adminCountdown" class="countdown-timer">00</div>
-                    </div>
-                </div>
-                
-                <!-- Game Control Buttons -->
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <button id="startBetBtn" class="admin-button bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-semibold">
-                        <i class="fas fa-play mr-2"></i>Start Betting
-                    </button>
-                    
-                    <button id="resetBetBtn" class="admin-button bg-yellow-600 hover:bg-yellow-700 text-white py-3 rounded-lg font-semibold">
-                        <i class="fas fa-redo mr-2"></i>Reset Bets
-                    </button>
-                    
-                    <button id="enableAIBtn" class="admin-button bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-lg font-semibold">
-                        <i class="fas fa-robot mr-2"></i>Enable AI
-                    </button>
-                    
-                    <button id="disableAIBtn" class="admin-button bg-gray-600 hover:bg-gray-700 text-white py-3 rounded-lg font-semibold">
-                        <i class="fas fa-robot mr-2"></i>Disable AI
-                    </button>
-                </div>
-            </div>
+      <div class="card">
+        <h2 id="resultTitle">रिजल्ट दें</h2>
+        <button id="resultHeads" class="btn-primary">चित</button>
+        <button id="resultTails" class="btn-warning">पट</button>
+        <button id="resultBurn" class="btn-danger">जल गया (Burn)</button>
+        <p id="aiSuggestion" class="ai-status">AI: रुकें...</p>
+      </div>
 
-            <!-- AI Command Box -->
-            <div class="glass-card rounded-2xl p-6 mb-6">
-                <h3 class="text-white text-xl font-semibold mb-4">
-                    <i class="fas fa-robot mr-2"></i>AI Command Box
-                </h3>
-                
-                <div class="space-y-4">
-                    <div class="flex space-x-2">
-                        <input type="text" id="aiCommandInput" placeholder="Type your command in Hindi or English (e.g., 'टाइमर को 60 सेकंड पर सेट करो', 'Enable AI', 'Add boss named John with ID 12345')" 
-                               class="flex-1 p-3 rounded-lg bg-white bg-opacity-20 text-white placeholder-gray-300 border border-white border-opacity-30">
-                        <button id="executeCommandBtn" class="admin-button bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-semibold">
-                            <i class="fas fa-paper-plane mr-2"></i>Execute
-                        </button>
-                    </div>
-                    
-                    <div id="aiCommandResponse" class="bg-black bg-opacity-30 rounded-lg p-3 text-white text-sm min-h-[60px] max-h-[120px] overflow-y-auto">
-                        <p class="opacity-75">AI Command Response will appear here...</p>
-                    </div>
-                </div>
-            </div>
+      <div class="card">
+        <h2 id="requestsTitle">लेन-देन अनुरोध</h2>
+        <table id="requestsTable">
+          <thead>
+            <tr>
+              <th>यूजर UID</th>
+              <th>राशि</th>
+              <th>प्रकार</th>
+              <th>स्थिति</th>
+              <th>कार्य</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
 
-            <!-- Result Control -->
-            <div class="glass-card rounded-2xl p-6">
-                <h3 class="text-white text-xl font-semibold mb-4">
-                    <i class="fas fa-trophy mr-2"></i>Result Control
-                </h3>
-                
-                <div class="grid grid-cols-3 gap-4">
-                    <button id="resultHeadBtn" class="admin-button bg-yellow-600 hover:bg-yellow-700 text-white py-4 rounded-lg text-lg font-semibold">
-                        <i class="fas fa-coins mr-2"></i>HEAD WINS
-                    </button>
-                    
-                    <button id="resultTailBtn" class="admin-button bg-gray-600 hover:bg-gray-700 text-white py-4 rounded-lg text-lg font-semibold">
-                        <i class="fas fa-coins mr-2"></i>TAIL WINS
-                    </button>
-                    
-                    <button id="resultBurnBtn" class="admin-button bg-red-600 hover:bg-red-700 text-white py-4 rounded-lg text-lg font-semibold">
-                        <i class="fas fa-fire mr-2"></i>BURN COIN
-                    </button>
-                </div>
-                
-                <div class="mt-4 text-center">
-                    <p class="text-white text-sm opacity-75">AI Status: <span id="aiStatus" class="font-semibold text-red-400">Disabled</span></p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Boss Management Panel -->
-        <div id="bossManagementPanel" class="tab-content hidden">
-            
-            <!-- Add New Boss -->
-            <div class="glass-card rounded-2xl p-6 mb-6">
-                <h3 class="text-white text-xl font-semibold mb-4">
-                    <i class="fas fa-plus mr-2"></i>Add New Boss
-                </h3>
-                
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <input type="text" id="bossName" placeholder="Boss Name" 
-                           class="p-3 rounded-lg bg-white bg-opacity-20 text-white placeholder-gray-300 border border-white border-opacity-30">
-                    
-                    <input type="text" id="bossReferralId" placeholder="Referral ID" 
-                           class="p-3 rounded-lg bg-white bg-opacity-20 text-white placeholder-gray-300 border border-white border-opacity-30">
-                    
-                    <button id="addBossBtn" class="admin-button bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-semibold">
-                        <i class="fas fa-plus mr-2"></i>Add Boss
-                    </button>
-                </div>
-            </div>
-
-            <!-- Boss List -->
-            <div class="glass-card rounded-2xl p-6">
-                <h3 class="text-white text-xl font-semibold mb-4">
-                    <i class="fas fa-list mr-2"></i>Boss List
-                </h3>
-                
-                <div id="bossList" class="space-y-4">
-                    <!-- Boss items will be dynamically added here -->
-                </div>
-            </div>
-        </div>
-
-        <!-- User Management Panel -->
-        <div id="userManagementPanel" class="tab-content hidden">
-            
-            <!-- Boss Selection for User View -->
-            <div class="glass-card rounded-2xl p-6 mb-6">
-                <h3 class="text-white text-xl font-semibold mb-4">
-                    <i class="fas fa-filter mr-2"></i>Select Boss to View Users
-                </h3>
-                
-                <select id="bossSelector" class="w-full p-3 rounded-lg bg-white bg-opacity-20 text-white border border-white border-opacity-30">
-                    <option value="">Select a Boss</option>
-                </select>
-            </div>
-
-            <!-- Users List -->
-            <div class="glass-card rounded-2xl p-6">
-                <h3 class="text-white text-xl font-semibold mb-4">
-                    <i class="fas fa-users mr-2"></i>Users Under Selected Boss
-                </h3>
-                
-                <div id="usersList" class="space-y-4">
-                    <p class="text-white text-center opacity-75">Select a boss to view users</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Wallet Requests Panel -->
-        <div id="walletRequestsPanel" class="tab-content hidden">
-            
-            <!-- Pending Requests -->
-            <div class="glass-card rounded-2xl p-6">
-                <h3 class="text-white text-xl font-semibold mb-4">
-                    <i class="fas fa-clock mr-2"></i>Pending Wallet Requests
-                </h3>
-                
-                <div id="walletRequestsList" class="space-y-4">
-                    <!-- Wallet requests will be dynamically added here -->
-                </div>
-            </div>
-        </div>
+      <button id="logoutBtn" class="btn-danger">लॉग आउट</button>
     </div>
+  </div>
 
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+  <script>
+    // Firebase Config
+    const firebaseConfig = {
+      apiKey: "AIzaSyAWFRw8XzqGF011OdzRO8WzaXcCF5Uzsxg",
+      authDomain: "flipcoin-1030e.firebaseapp.com",
+      databaseURL: "https://flipcoin-1030e-default-rtdb.firebaseio.com",
+      projectId: "flipcoin-1030e",
+      storageBucket: "flipcoin-1030e.firebasestorage.app",
+      messagingSenderId: "485574721435",
+      appId: "1:485574721435:web:9c4713a57521128f122b3e",
+      measurementId: "G-JKG0KTMTBQ"
+    };
 
-    <script>
-        // Firebase Configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyAWFRw8XzqGF011OdzRO8WzaXcCF5Uzsxg",
-            authDomain: "flipcoin-1030e.firebaseapp.com",
-            databaseURL: "https://flipcoin-1030e-default-rtdb.firebaseio.com",
-            projectId: "flipcoin-1030e",
-            storageBucket: "flipcoin-1030e.firebasestorage.app",
-            messagingSenderId: "485574721435",
-            appId: "1:485574721435:web:9c4713a57521128f122b3e",
-            measurementId: "G-JKG0KTMTBQ"
-        };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.database();
 
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const database = firebase.database();
+    const ADMIN_EMAIL = "akky9453226641@gmail.com";
 
-        // Gemini AI Configuration
-        const GEMINI_API_KEY = 'AIzaSyDkRBSjzlCQ98BkuI37uQh_7ntHgVgMk6E';
-        const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`;
+    // Language
+    let lang = 'hi';
+    const t = {
+      hi: {
+        adminTitle: "एडमिन पैनल",
+        countdownTitle: "उलटी गिनती सेट करें (सेकंड में)",
+        bossTitle: "बॉस प्रबंधन",
+        liveTitle: "लाइव बेटिंग डेटा",
+        resultTitle: "रिजल्ट दें",
+        requestsTitle: "लेन-देन अनुरोध"
+      },
+      en: {
+        adminTitle: "Admin Panel",
+        countdownTitle: "Set Countdown (seconds)",
+        bossTitle: "Boss Management",
+        liveTitle: "Live Betting Data",
+        resultTitle: "Declare Result",
+        requestsTitle: "Transaction Requests"
+      }
+    };
 
-        // Admin Configuration
-        const ADMIN_EMAIL = 'akky9453226641@gmail.com';
+    function updateLang() {
+      document.getElementById("adminTitle").textContent = t[lang].adminTitle;
+      document.getElementById("countdownTitle").textContent = t[lang].countdownTitle;
+      document.getElementById("bossTitle").textContent = t[lang].bossTitle;
+      document.getElementById("liveTitle").textContent = t[lang].liveTitle;
+      document.getElementById("resultTitle").textContent = t[lang].resultTitle;
+      document.getElementById("requestsTitle").textContent = t[lang].requestsTitle;
+    }
 
-        // Global Variables
-        let currentUser = null;
-        let gameTimer = null;
-        let countdownInterval = null;
-        let aiEnabled = false;
-        let currentCountdown = 0;
+    // Admin Login
+    document.getElementById("adminLogin").onclick = () => {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      auth.signInWithPopup(provider);
+    };
 
-        // DOM Elements
-        const adminLoginScreen = document.getElementById('adminLoginScreen');
-        const adminDashboard = document.getElementById('adminDashboard');
-        const adminEmail = document.getElementById('adminEmail');
-        const adminPassword = document.getElementById('adminPassword');
-        const adminLoginBtn = document.getElementById('adminLoginBtn');
-        const adminLogoutBtn = document.getElementById('adminLogoutBtn');
-        const adminName = document.getElementById('adminName');
+    auth.onAuthStateChanged(user => {
+      if (user && user.email === ADMIN_EMAIL) {
+        document.getElementById("loginScreen").style.display = "none";
+        document.getElementById("adminPanel").style.display = "block";
+        loadBosses();
+        loadRequests();
+        setupRealtimeData();
+        updateLang();
+      } else {
+        document.getElementById("loginScreen").style.display = "block";
+        document.getElementById("adminPanel").style.display = "none";
+      }
+    });
 
-        // Tab Elements
-        const gameControlTab = document.getElementById('gameControlTab');
-        const bossManagementTab = document.getElementById('bossManagementTab');
-        const userManagementTab = document.getElementById('userManagementTab');
-        const walletRequestsTab = document.getElementById('walletRequestsTab');
+    document.getElementById("logoutBtn").onclick = () => {
+      auth.signOut();
+    };
 
-        // Panel Elements
-        const gameControlPanel = document.getElementById('gameControlPanel');
-        const bossManagementPanel = document.getElementById('bossManagementPanel');
-        const userManagementPanel = document.getElementById('userManagementPanel');
-        const walletRequestsPanel = document.getElementById('walletRequestsPanel');
+    // Load Bosses
+    function loadBosses() {
+      const select = document.getElementById("bossList");
+      db.ref("bosses/").on("value", snap => {
+        select.innerHTML = "<option value=''>बॉस चुनें</option>";
+        snap.forEach(child => {
+          const opt = document.createElement("option");
+          opt.value = child.key;
+          opt.textContent = child.val().name;
+          select.appendChild(opt);
+        });
+      });
+    }
 
-        // Game Control Elements
-        const timerInput = document.getElementById('timerInput');
-        const setTimerBtn = document.getElementById('setTimerBtn');
-        const adminCountdown = document.getElementById('adminCountdown');
-        const startBetBtn = document.getElementById('startBetBtn');
-        const resetBetBtn = document.getElementById('resetBetBtn');
-        const enableAIBtn = document.getElementById('enableAIBtn');
-        const disableAIBtn = document.getElementById('disableAIBtn');
-        const resultHeadBtn = document.getElementById('resultHeadBtn');
-        const resultTailBtn = document.getElementById('resultTailBtn');
-        const resultBurnBtn = document.getElementById('resultBurnBtn');
-        const aiStatus = document.getElementById('aiStatus');
+    document.getElementById("addBoss").onclick = () => {
+      const name = document.getElementById("bossName").value.trim();
+      const refId = document.getElementById("bossRefId").value.trim();
+      if (!name || !refId) {
+        alert("नाम और रेफरल आईडी दर्ज करें");
+        return;
+      }
+      db.ref("bosses/").push({ name, refId });
+      document.getElementById("bossName").value = "";
+      document.getElementById("bossRefId").value = "";
+    };
 
-        // AI Command Box Elements
-        const aiCommandInput = document.getElementById('aiCommandInput');
-        const executeCommandBtn = document.getElementById('executeCommandBtn');
-        const aiCommandResponse = document.getElementById('aiCommandResponse');
+    document.getElementById("removeBoss").onclick = () => {
+      const key = document.getElementById("bossList").value;
+      if (key) {
+        db.ref("bosses/" + key).remove();
+        alert("बॉस हटाया गया");
+      }
+    };
 
-        // Stats Elements
-        const livePlayersCount = document.getElementById('livePlayersCount');
-        const liveHeadBets = document.getElementById('liveHeadBets');
-        const liveTailBets = document.getElementById('liveTailBets');
-        const liveTotalBets = document.getElementById('liveTotalBets');
+    // Countdown
+    document.getElementById("startCountdown").onclick = () => {
+      const seconds = parseInt(document.getElementById("countdownInput").value);
+      if (isNaN(seconds) || seconds < 10) {
+        alert("कम से कम 10 सेकंड");
+        return;
+      }
+      db.ref("game/currentCountdown").set(seconds);
+      setTimeout(() => {
+        db.ref("game/currentCountdown").set(null);
+      }, seconds * 1000);
+    };
 
-        // Boss Management Elements
-        const bossName = document.getElementById('bossName');
-        const bossReferralId = document.getElementById('bossReferralId');
-        const addBossBtn = document.getElementById('addBossBtn');
-        const bossList = document.getElementById('bossList');
+    document.getElementById("resetBets").onclick = () => {
+      db.ref("bets").remove();
+      alert("सभी बेट रीसेट");
+    };
 
-        // User Management Elements
-        const bossSelector = document.getElementById('bossSelector');
-        const usersList = document.getElementById('usersList');
+    // Realtime Betting Data
+    function setupRealtimeData() {
+      db.ref("game/currentCountdown").on("value", s => {
+        const val = s.val();
+        document.getElementById("countdownDisplay").textContent = val ? `अगला राउंड: ${val} सेकंड` : "राउंड समाप्त";
+      });
 
-        // Wallet Requests Elements
-        const walletRequestsList = document.getElementById('walletRequestsList');
+      db.ref("bets").on("value", snap => {
+        let heads = 0, tails = 0, users = 0;
+        snap.forEach(child => {
+          const bet = child.val();
+          if (bet.choice === "heads") heads += bet.amount;
+          else if (bet.choice === "tails") tails += bet.amount;
+          users++;
+        });
+        const total = heads + tails;
+        document.getElementById("headsAmount").textContent = `₹${heads}`;
+        document.getElementById("tailsAmount").textContent = `₹${tails}`;
+        document.getElementById("totalBet").textContent = `₹${total}`;
+        document.getElementById("totalUsers").textContent = users;
 
-        // Event Listeners
-        adminLoginBtn.addEventListener('click', handleAdminLogin);
-        adminLogoutBtn.addEventListener('click', handleAdminLogout);
+        // AI Suggestion via Gemini
+        suggestResult(heads, tails);
+      });
+    }
 
-        // Tab Navigation
-        gameControlTab.addEventListener('click', () => switchTab('gameControl'));
-        bossManagementTab.addEventListener('click', () => switchTab('bossManagement'));
-        userManagementTab.addEventListener('click', () => switchTab('userManagement'));
-        walletRequestsTab.addEventListener('click', () => switchTab('walletRequests'));
+    // Gemini AI Integration
+    async function suggestResult(heads, tails) {
+      const API_KEY = "AIzaSyDkRBSjzlCQ98BkuI37uQh_7ntHgVgMk6E";
+      const prompt = `In a coin flip game:
+        Heads bet: ₹${heads}
+        Tails bet: ₹${tails}
+        If equal, suggest 'burn'. Otherwise, suggest the side with less bet to win for profit balance.
+        Reply only: heads, tails, or burn.`;
 
-        // Game Control Events
-        setTimerBtn.addEventListener('click', setGameTimer);
-        startBetBtn.addEventListener('click', startBetting);
-        resetBetBtn.addEventListener('click', resetBets);
-        enableAIBtn.addEventListener('click', enableAI);
-        disableAIBtn.addEventListener('click', disableAI);
-        resultHeadBtn.addEventListener('click', () => setResult('head'));
-        resultTailBtn.addEventListener('click', () => setResult('tail'));
-        resultBurnBtn.addEventListener('click', () => setResult('burn'));
+      try {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${API_KEY}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+        });
+        const data = await res.json();
+        const aiResult = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim().toLowerCase();
+        document.getElementById("aiSuggestion").textContent = `AI: ${aiResult}`;
+      } catch (e) {
+        document.getElementById("aiSuggestion").textContent = "AI: त्रुटि";
+      }
+    }
 
-        // AI Command Box Events
-        executeCommandBtn.addEventListener('click', executeAICommand);
-        aiCommandInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                executeAICommand();
-            }
+    // Result Buttons
+    ["Heads", "Tails", "Burn"].forEach(type => {
+      document.getElementById(`result${type}`).onclick = () => {
+        const result = type.toLowerCase() === "burn" ? "burn" : type.toLowerCase();
+        db.ref("game/lastResult").set(result);
+
+        if (result !== "burn") {
+          db.ref("bets").once("value").then(snap => {
+            snap.forEach(child => {
+              const bet = child.val();
+              const win = (result === "heads" && bet.choice === "heads") || (result === "tails" && bet.choice === "tails");
+              if (win) {
+                db.ref("users/" + bet.uid + "/balance").transaction(current => (current || 0) + bet.amount * 2);
+                db.ref("users/" + bet.uid).update({ totalProfit: firebase.database.ServerValue.increment(bet.amount) });
+              } else {
+                db.ref("users/" + bet.uid).update({ totalLoss: firebase.database.ServerValue.increment(bet.amount) });
+              }
+            });
+          });
+        } else {
+          // No profit no loss
+        }
+
+        // Reset bets after result
+        setTimeout(() => {
+          db.ref("bets").remove();
+        }, 2000);
+      };
+    });
+
+    // Requests
+    function loadRequests() {
+      db.ref("requests").on("value", snap => {
+        const tbody = document.querySelector("#requestsTable tbody");
+        tbody.innerHTML = "";
+        snap.forEach(child => {
+          const req = child.val();
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${req.uid}</td>
+            <td>₹${req.amount}</td>
+            <td>${req.type}</td>
+            <td>${req.status}</td>
+            <td>
+              <button class="btn-success approve" data-key="${child.key}" data-uid="${req.uid}" data-amount="${req.amount}" data-type="${req.type}">मंजूर</button>
+              <button class="btn-danger reject" data-key="${child.key}">अस्वीकार</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
         });
 
-        // Boss Management Events
-        addBossBtn.addEventListener('click', addBoss);
-        bossSelector.addEventListener('change', loadUsersForBoss);
+        // Approve/Reject
+        document.querySelectorAll(".approve").forEach(btn => {
+          btn.onclick = function () {
+            const key = this.getAttribute("data-key");
+            const uid = this.getAttribute("data-uid");
+            const amount = parseInt(this.getAttribute("data-amount"));
+            const type = this.getAttribute("data-type");
 
-        // Functions
-        async function handleAdminLogin() {
-            const email = adminEmail.value.trim();
-            const password = adminPassword.value.trim();
-
-            if (!email || !password) {
-                alert('कृपया ईमेल और पासवर्ड दर्ज करें');
-                return;
+            if (type === "add") {
+              db.ref("users/" + uid + "/balance").transaction(current => (current || 0) + amount);
+            } else if (type === "withdraw") {
+              db.ref("users/" + uid + "/balance").transaction(current => {
+                return (current || 0) >= amount ? current - amount : current;
+              });
             }
 
-            if (email !== ADMIN_EMAIL) {
-                alert('अमान्य एडमिन ईमेल');
-                return;
-            }
-
-            try {
-                // For demo purposes, allow any password for the admin email
-                // In production, use proper Firebase authentication
-                if (email === ADMIN_EMAIL) {
-                    adminLoginScreen.classList.add('hidden');
-                    adminDashboard.classList.remove('hidden');
-                    adminName.textContent = 'Administrator';
-                    
-                    // Initialize admin dashboard
-                    initializeAdminDashboard();
-                } else {
-                    alert('लॉगिन में त्रुटि: Invalid credentials');
-                }
-                
-            } catch (error) {
-                alert('लॉगिन में त्रुटि: ' + error.message);
-            }
-        }
-
-        function handleAdminLogout() {
-            adminDashboard.classList.add('hidden');
-            adminLoginScreen.classList.remove('hidden');
-            adminEmail.value = '';
-            adminPassword.value = '';
-            currentUser = null;
-        }
-
-        function switchTab(tabName) {
-            // Hide all panels
-            document.querySelectorAll('.tab-content').forEach(panel => {
-                panel.classList.add('hidden');
-            });
-
-            // Reset all tab buttons
-            document.querySelectorAll('.tab-button').forEach(button => {
-                button.classList.remove('bg-blue-600');
-                button.classList.add('bg-gray-600');
-            });
-
-            // Show selected panel and highlight tab
-            switch(tabName) {
-                case 'gameControl':
-                    gameControlPanel.classList.remove('hidden');
-                    gameControlTab.classList.remove('bg-gray-600');
-                    gameControlTab.classList.add('bg-blue-600');
-                    break;
-                case 'bossManagement':
-                    bossManagementPanel.classList.remove('hidden');
-                    bossManagementTab.classList.remove('bg-gray-600');
-                    bossManagementTab.classList.add('bg-blue-600');
-                    loadBossList();
-                    break;
-                case 'userManagement':
-                    userManagementPanel.classList.remove('hidden');
-                    userManagementTab.classList.remove('bg-gray-600');
-                    userManagementTab.classList.add('bg-blue-600');
-                    loadBossSelector();
-                    break;
-                case 'walletRequests':
-                    walletRequestsPanel.classList.remove('hidden');
-                    walletRequestsTab.classList.remove('bg-gray-600');
-                    walletRequestsTab.classList.add('bg-blue-600');
-                    loadWalletRequests();
-                    break;
-            }
-        }
-
-        function initializeAdminDashboard() {
-            // Load live statistics
-            loadLiveStats();
-            
-            // Load boss list for selector
-            loadBossSelector();
-            
-            // Start listening for real-time updates
-            startRealTimeListeners();
-        }
-
-        function setGameTimer() {
-            const seconds = parseInt(timerInput.value);
-            if (seconds < 10 || seconds > 300) {
-                alert('समय 10 से 300 सेकंड के बीच होना चाहिए');
-                return;
-            }
-
-            // Set timer in Firebase
-            database.ref('gameSettings/timer').set(seconds);
-            alert(`टाइमर ${seconds} सेकंड पर सेट किया गया`);
-        }
-
-        function startBetting() {
-            const timerValue = parseInt(timerInput.value) || 30;
-            
-            // Start countdown in Firebase
-            database.ref('gameState').update({
-                status: 'betting',
-                countdown: timerValue,
-                timestamp: firebase.database.ServerValue.TIMESTAMP
-            });
-
-            startCountdown(timerValue);
-            alert('बेटिंग शुरू की गई');
-        }
-
-        function resetBets() {
-            // Reset all bets in Firebase
-            database.ref('currentBets').remove();
-            database.ref('gameState').update({
-                status: 'waiting',
-                countdown: 0
-            });
-
-            if (countdownInterval) {
-                clearInterval(countdownInterval);
-            }
-            adminCountdown.textContent = '00';
-            alert('सभी बेट्स रीसेट की गईं');
-        }
-
-        function enableAI() {
-            aiEnabled = true;
-            database.ref('gameSettings/aiEnabled').set(true);
-            aiStatus.textContent = 'Enabled';
-            aiStatus.className = 'font-semibold text-green-400';
-            alert('AI सक्षम की गई - अब AI automatic countdown शुरू करेगा');
-            
-            // Start AI automatic countdown if timer is set
-            startAIAutomaticCountdown();
-        }
-
-        function disableAI() {
-            aiEnabled = false;
-            database.ref('gameSettings/aiEnabled').set(false);
-            aiStatus.textContent = 'Disabled';
-            aiStatus.className = 'font-semibold text-red-400';
-            alert('AI अक्षम की गई');
-            
-            // Stop AI automatic countdown
-            if (aiCountdownInterval) {
-                clearInterval(aiCountdownInterval);
-                aiCountdownInterval = null;
-            }
-        }
-
-        let aiCountdownInterval = null;
-
-        function startAIAutomaticCountdown() {
-            if (!aiEnabled) return;
-            
-            // Clear any existing interval
-            if (aiCountdownInterval) {
-                clearInterval(aiCountdownInterval);
-            }
-            
-            // Start AI automatic countdown cycle
-            aiCountdownInterval = setInterval(() => {
-                if (!aiEnabled) {
-                    clearInterval(aiCountdownInterval);
-                    return;
-                }
-                
-                // Get timer value from input box
-                const timerValue = parseInt(timerInput.value) || 30;
-                
-                // Automatically start betting with the timer value
-                database.ref('gameState').update({
-                    status: 'betting',
-                    countdown: timerValue,
-                    timestamp: firebase.database.ServerValue.TIMESTAMP
-                });
-
-                startCountdown(timerValue);
-                
-                console.log(`AI ने automatic countdown शुरू किया: ${timerValue} सेकंड`);
-                
-            }, 10000); // Start new round every 10 seconds after previous round ends
-        }
-
-        function setGameTimer() {
-            const seconds = parseInt(timerInput.value);
-            if (seconds < 10 || seconds > 300) {
-                alert('समय 10 से 300 सेकंड के बीच होना चाहिए');
-                return;
-            }
-
-            // Set timer in Firebase
-            database.ref('gameSettings/timer').set(seconds);
-            alert(`टाइमर ${seconds} सेकंड पर सेट किया गया`);
-            
-            // If AI is enabled, restart automatic countdown with new timer
-            if (aiEnabled) {
-                startAIAutomaticCountdown();
-            }
-        }
-
-        function startCountdown(seconds) {
-            currentCountdown = seconds;
-            
-            if (countdownInterval) {
-                clearInterval(countdownInterval);
-            }
-
-            countdownInterval = setInterval(() => {
-                currentCountdown--;
-                adminCountdown.textContent = currentCountdown.toString().padStart(2, '0');
-                
-                // Update countdown in Firebase
-                database.ref('gameState/countdown').set(currentCountdown);
-
-                if (currentCountdown <= 0) {
-                    clearInterval(countdownInterval);
-                    
-                    // Auto-decide result if AI is enabled
-                    if (aiEnabled) {
-                        autoDecideResult();
-                    }
-                }
-            }, 1000);
-        }
-
-        async function autoDecideResult() {
-            try {
-                // Get current bet data
-                const betsSnapshot = await database.ref('currentBets').once('value');
-                const bets = betsSnapshot.val() || {};
-                
-                let headTotal = 0;
-                let tailTotal = 0;
-                
-                Object.values(bets).forEach(bet => {
-                    if (bet.choice === 'head') {
-                        headTotal += bet.amount;
-                    } else if (bet.choice === 'tail') {
-                        tailTotal += bet.amount;
-                    }
-                });
-
-                let result;
-                if (headTotal === tailTotal) {
-                    result = 'burn';
-                } else if (headTotal < tailTotal) {
-                    result = 'head'; // Less money on head, so head wins (house edge)
-                } else {
-                    result = 'tail'; // Less money on tail, so tail wins (house edge)
-                }
-
-                // Use Gemini AI for more sophisticated decision making
-                try {
-                    const aiResult = await getGeminiDecision(headTotal, tailTotal);
-                    if (aiResult) {
-                        result = aiResult;
-                    }
-                } catch (aiError) {
-                    console.log('AI decision failed, using fallback logic:', aiError);
-                }
-
-                setResult(result);
-                
-            } catch (error) {
-                console.error('AI decision error:', error);
-                alert('AI निर्णय में त्रुटि: ' + error.message);
-            }
-        }
-
-        async function getGeminiDecision(headTotal, tailTotal) {
-            try {
-                const prompt = `You are a coin flip game AI. Current bets: Head: ₹${headTotal}, Tail: ₹${tailTotal}. 
-                Rules: 1) If amounts are equal, return 'burn' 2) Generally favor the side with less money (house edge) 
-                3) Occasionally (20% chance) let the side with more money win for fairness. 
-                Return only one word: 'head', 'tail', or 'burn'.`;
-
-                const response = await fetch(GEMINI_API_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        contents: [{
-                            parts: [{
-                                text: prompt
-                            }]
-                        }]
-                    })
-                });
-
-                if (!response.ok) {
-                    throw new Error('Gemini API request failed');
-                }
-
-                const data = await response.json();
-                const aiDecision = data.candidates[0].content.parts[0].text.trim().toLowerCase();
-                
-                if (['head', 'tail', 'burn'].includes(aiDecision)) {
-                    return aiDecision;
-                }
-                
-                return null;
-            } catch (error) {
-                console.error('Gemini AI error:', error);
-                return null;
-            }
-        }
-
-        function setResult(result) {
-            // Set result in Firebase
-            database.ref('gameState').update({
-                status: 'result',
-                result: result,
-                timestamp: firebase.database.ServerValue.TIMESTAMP
-            });
-
-            // Process winnings
-            processWinnings(result);
-            
-            alert(`परिणाम सेट किया गया: ${result.toUpperCase()}`);
-        }
-
-        async function processWinnings(result) {
-            try {
-                const betsSnapshot = await database.ref('currentBets').once('value');
-                const bets = betsSnapshot.val() || {};
-                
-                for (const [userId, bet] of Object.entries(bets)) {
-                    const userRef = database.ref(`users/${userId}`);
-                    const userSnapshot = await userRef.once('value');
-                    const userData = userSnapshot.val();
-                    
-                    if (!userData) continue;
-                    
-                    let winAmount = 0;
-                    
-                    if (result === 'burn') {
-                        // Return original bet amount (no profit, no loss)
-                        winAmount = bet.amount;
-                    } else if (bet.choice === result) {
-                        // Winner gets 2x the bet amount
-                        winAmount = bet.amount * 2;
-                    }
-                    // Losers get nothing (winAmount remains 0)
-                    
-                    // Update user wallet
-                    const newBalance = (userData.wallet || 0) + winAmount;
-                    await userRef.update({
-                        wallet: newBalance,
-                        totalProfit: (userData.totalProfit || 0) + (winAmount - bet.amount),
-                        totalLoss: result !== 'burn' && bet.choice !== result ? 
-                                  (userData.totalLoss || 0) + bet.amount : (userData.totalLoss || 0),
-                        gamesPlayed: (userData.gamesPlayed || 0) + 1
-                    });
-                }
-                
-                // Clear current bets after processing
-                setTimeout(() => {
-                    database.ref('currentBets').remove();
-                }, 5000);
-                
-            } catch (error) {
-                console.error('Error processing winnings:', error);
-            }
-        }
-
-        function addBoss() {
-            const name = bossName.value.trim();
-            const referralId = bossReferralId.value.trim();
-            
-            if (!name || !referralId) {
-                alert('कृपया बॉस का नाम और रेफरल आईडी दर्ज करें');
-                return;
-            }
-            
-            // Add boss to Firebase
-            database.ref('bosses').push({
-                name: name,
-                referralId: referralId,
-                createdAt: firebase.database.ServerValue.TIMESTAMP
-            }).then(() => {
-                bossName.value = '';
-                bossReferralId.value = '';
-                alert('बॉस सफलतापूर्वक जोड़ा गया');
-                loadBossList();
-            }).catch(error => {
-                alert('बॉस जोड़ने में त्रुटि: ' + error.message);
-            });
-        }
-
-        function loadBossList() {
-            database.ref('bosses').on('value', (snapshot) => {
-                const bosses = snapshot.val() || {};
-                bossList.innerHTML = '';
-                
-                if (Object.keys(bosses).length === 0) {
-                    bossList.innerHTML = '<p class="text-white text-center opacity-75">No bosses found</p>';
-                    return;
-                }
-                
-                Object.entries(bosses).forEach(([bossId, boss]) => {
-                    const bossElement = document.createElement('div');
-                    bossElement.className = 'glass-card rounded-lg p-4 flex justify-between items-center';
-                    bossElement.innerHTML = `
-                        <div>
-                            <h4 class="text-white font-semibold">${boss.name}</h4>
-                            <p class="text-gray-300 text-sm">Referral ID: ${boss.referralId}</p>
-                        </div>
-                        <button onclick="removeBoss('${bossId}')" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    `;
-                    bossList.appendChild(bossElement);
-                });
-            });
-        }
-
-        function removeBoss(bossId) {
-            if (confirm('क्या आप वाकई इस बॉस को हटाना चाहते हैं?')) {
-                database.ref(`bosses/${bossId}`).remove().then(() => {
-                    alert('बॉस सफलतापूर्वक हटाया गया');
-                });
-            }
-        }
-
-        function loadBossSelector() {
-            database.ref('bosses').on('value', (snapshot) => {
-                const bosses = snapshot.val() || {};
-                bossSelector.innerHTML = '<option value="">Select a Boss</option>';
-                
-                Object.entries(bosses).forEach(([bossId, boss]) => {
-                    const option = document.createElement('option');
-                    option.value = boss.referralId;
-                    option.textContent = boss.name;
-                    bossSelector.appendChild(option);
-                });
-            });
-        }
-
-        function loadUsersForBoss() {
-            const selectedReferralId = bossSelector.value;
-            
-            if (!selectedReferralId) {
-                usersList.innerHTML = '<p class="text-white text-center opacity-75">Select a boss to view users</p>';
-                return;
-            }
-            
-            database.ref('users').orderByChild('referralId').equalTo(selectedReferralId).on('value', (snapshot) => {
-                const users = snapshot.val() || {};
-                usersList.innerHTML = '';
-                
-                if (Object.keys(users).length === 0) {
-                    usersList.innerHTML = '<p class="text-white text-center opacity-75">No users found for this boss</p>';
-                    return;
-                }
-                
-                Object.entries(users).forEach(([userId, user]) => {
-                    const userElement = document.createElement('div');
-                    userElement.className = 'glass-card rounded-lg p-4';
-                    
-                    const isOnline = user.lastSeen && (Date.now() - user.lastSeen) < 300000; // 5 minutes
-                    
-                    userElement.innerHTML = `
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <div class="flex items-center mb-2">
-                                    <h4 class="text-white font-semibold mr-2">${user.name || 'Unknown'}</h4>
-                                    ${isOnline ? '<div class="online-indicator"></div>' : '<div class="w-2 h-2 bg-gray-500 rounded-full"></div>'}
-                                </div>
-                                <p class="text-gray-300 text-sm mb-1">Email: ${user.email || 'N/A'}</p>
-                                <p class="text-gray-300 text-sm mb-1">Wallet: ₹${user.wallet || 0}</p>
-                                <p class="text-green-400 text-sm mb-1">Total Profit: ₹${user.totalProfit || 0}</p>
-                                <p class="text-red-400 text-sm mb-1">Total Loss: ₹${user.totalLoss || 0}</p>
-                                <p class="text-gray-300 text-sm">Games Played: ${user.gamesPlayed || 0}</p>
-                            </div>
-                            <div class="text-right">
-                                <p class="text-white text-sm">${isOnline ? 'Online' : 'Offline'}</p>
-                                <p class="text-gray-400 text-xs">
-                                    ${user.lastSeen ? new Date(user.lastSeen).toLocaleString() : 'Never'}
-                                </p>
-                            </div>
-                        </div>
-                    `;
-                    usersList.appendChild(userElement);
-                });
-            });
-        }
-
-        function loadWalletRequests() {
-            database.ref('walletRequests').orderByChild('status').equalTo('pending').on('value', (snapshot) => {
-                const requests = snapshot.val() || {};
-                walletRequestsList.innerHTML = '';
-                
-                if (Object.keys(requests).length === 0) {
-                    walletRequestsList.innerHTML = '<p class="text-white text-center opacity-75">No pending wallet requests</p>';
-                    return;
-                }
-                
-                Object.entries(requests).forEach(([requestId, request]) => {
-                    const requestElement = document.createElement('div');
-                    requestElement.className = 'glass-card rounded-lg p-4';
-                    requestElement.innerHTML = `
-                        <div class="flex justify-between items-center">
-                            <div>
-                                <h4 class="text-white font-semibold">${request.userName || 'Unknown User'}</h4>
-                                <p class="text-gray-300 text-sm">Type: ${request.type === 'add' ? 'Add Money' : 'Withdraw'}</p>
-                                <p class="text-gray-300 text-sm">Amount: ₹${request.amount}</p>
-                                <p class="text-gray-400 text-xs">Requested: ${new Date(request.timestamp).toLocaleString()}</p>
-                            </div>
-                            <div class="flex space-x-2">
-                                <button onclick="approveWalletRequest('${requestId}', '${request.userId}', ${request.amount}, '${request.type}')" 
-                                        class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded">
-                                    <i class="fas fa-check"></i> Approve
-                                </button>
-                                <button onclick="rejectWalletRequest('${requestId}')" 
-                                        class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded">
-                                    <i class="fas fa-times"></i> Reject
-                                </button>
-                            </div>
-                        </div>
-                    `;
-                    walletRequestsList.appendChild(requestElement);
-                });
-            });
-        }
-
-        async function approveWalletRequest(requestId, userId, amount, type) {
-            try {
-                // Get user data
-                const userSnapshot = await database.ref(`users/${userId}`).once('value');
-                const userData = userSnapshot.val();
-                
-                if (!userData) {
-                    alert('उपयोगकर्ता नहीं मिला');
-                    return;
-                }
-                
-                let newBalance;
-                if (type === 'add') {
-                    newBalance = (userData.wallet || 0) + amount;
-                } else {
-                    newBalance = (userData.wallet || 0) - amount;
-                    if (newBalance < 0) {
-                        alert('अपर्याप्त बैलेंस');
-                        return;
-                    }
-                }
-                
-                // Update user wallet
-                await database.ref(`users/${userId}`).update({
-                    wallet: newBalance
-                });
-                
-                // Update request status
-                await database.ref(`walletRequests/${requestId}`).update({
-                    status: 'approved',
-                    approvedAt: firebase.database.ServerValue.TIMESTAMP
-                });
-                
-                alert('वॉलेट अनुरोध स्वीकृत');
-                
-            } catch (error) {
-                alert('त्रुटि: ' + error.message);
-            }
-        }
-
-        async function rejectWalletRequest(requestId) {
-            try {
-                await database.ref(`walletRequests/${requestId}`).update({
-                    status: 'rejected',
-                    rejectedAt: firebase.database.ServerValue.TIMESTAMP
-                });
-                
-                alert('वॉलेट अनुरोध अस्वीकृत');
-                
-            } catch (error) {
-                alert('त्रुटि: ' + error.message);
-            }
-        }
-
-        function loadLiveStats() {
-            // Listen for live betting data
-            database.ref('currentBets').on('value', (snapshot) => {
-                const bets = snapshot.val() || {};
-                
-                let headTotal = 0;
-                let tailTotal = 0;
-                let playerCount = 0;
-                
-                Object.values(bets).forEach(bet => {
-                    playerCount++;
-                    if (bet.choice === 'head') {
-                        headTotal += bet.amount;
-                    } else if (bet.choice === 'tail') {
-                        tailTotal += bet.amount;
-                    }
-                });
-                
-                livePlayersCount.textContent = playerCount;
-                liveHeadBets.textContent = `₹${headTotal}`;
-                liveTailBets.textContent = `₹${tailTotal}`;
-                liveTotalBets.textContent = `₹${headTotal + tailTotal}`;
-            });
-        }
-
-        function startRealTimeListeners() {
-            // Listen for game state changes
-            database.ref('gameState').on('value', (snapshot) => {
-                const gameState = snapshot.val() || {};
-                
-                if (gameState.countdown) {
-                    adminCountdown.textContent = gameState.countdown.toString().padStart(2, '0');
-                }
-            });
-            
-            // Listen for AI settings
-            database.ref('gameSettings/aiEnabled').on('value', (snapshot) => {
-                aiEnabled = snapshot.val() || false;
-                aiStatus.textContent = aiEnabled ? 'Enabled' : 'Disabled';
-                aiStatus.className = aiEnabled ? 'font-semibold text-green-400' : 'font-semibold text-red-400';
-            });
-        }
-
-        // AI Command Box Functions
-        async function executeAICommand() {
-            const command = aiCommandInput.value.trim();
-            if (!command) {
-                updateAIResponse('कृपया कोई कमांड टाइप करें।', 'error');
-                return;
-            }
-
-            updateAIResponse('AI आपकी कमांड को समझ रहा है...', 'processing');
-
-            try {
-                const response = await fetch(GEMINI_API_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        contents: [{
-                            parts: [{
-                                text: `You are an AI assistant for a CoinCoin game admin panel. The user can give commands in Hindi or English. Based on the command, you need to call the appropriate function.
-
-Available functions:
-1. setTimer(seconds) - Set game timer (10-300 seconds)
-2. startBetting() - Start betting round
-3. resetBets() - Reset all bets
-4. enableAI() - Enable AI automatic mode
-5. disableAI() - Disable AI automatic mode
-6. setResult(result) - Set game result ('head', 'tail', or 'burn')
-7. addBoss(name, referralId) - Add new boss with name and referral ID
-
-User command: "${command}"
-
-Respond with a JSON object containing:
-- action: the function name to call
-- params: array of parameters (if any)
-- message: a friendly response in Hindi explaining what you're doing
-
-Examples:
-- "टाइमर को 60 सेकंड पर सेट करो" → {"action": "setTimer", "params": [60], "message": "टाइमर को 60 सेकंड पर सेट कर रहा हूँ"}
-- "AI चालू करो" → {"action": "enableAI", "params": [], "message": "AI को चालू कर रहा हूँ"}
-- "Head जीते" → {"action": "setResult", "params": ["head"], "message": "Head को विजेता बना रहा हूँ"}
-`
-                            }]
-                        }],
-                        tools: [{
-                            function_declarations: [
-                                {
-                                    name: "setTimer",
-                                    description: "Set the game timer in seconds",
-                                    parameters: {
-                                        type: "object",
-                                        properties: {
-                                            seconds: {
-                                                type: "integer",
-                                                description: "Timer duration in seconds (10-300)"
-                                            }
-                                        },
-                                        required: ["seconds"]
-                                    }
-                                },
-                                {
-                                    name: "startBetting",
-                                    description: "Start a new betting round",
-                                    parameters: { type: "object", properties: {} }
-                                },
-                                {
-                                    name: "resetBets",
-                                    description: "Reset all current bets",
-                                    parameters: { type: "object", properties: {} }
-                                },
-                                {
-                                    name: "enableAI",
-                                    description: "Enable AI automatic mode",
-                                    parameters: { type: "object", properties: {} }
-                                },
-                                {
-                                    name: "disableAI",
-                                    description: "Disable AI automatic mode",
-                                    parameters: { type: "object", properties: {} }
-                                },
-                                {
-                                    name: "setResult",
-                                    description: "Set the game result",
-                                    parameters: {
-                                        type: "object",
-                                        properties: {
-                                            result: {
-                                                type: "string",
-                                                enum: ["head", "tail", "burn"],
-                                                description: "The game result"
-                                            }
-                                        },
-                                        required: ["result"]
-                                    }
-                                },
-                                {
-                                    name: "addBoss",
-                                    description: "Add a new boss",
-                                    parameters: {
-                                        type: "object",
-                                        properties: {
-                                            name: {
-                                                type: "string",
-                                                description: "Boss name"
-                                            },
-                                            referralId: {
-                                                type: "string",
-                                                description: "Boss referral ID"
-                                            }
-                                        },
-                                        required: ["name", "referralId"]
-                                    }
-                                }
-                            ]
-                        }]
-                    })
-                });
-
-                const data = await response.json();
-                
-                if (data.candidates && data.candidates[0].content.parts[0].functionCall) {
-                    const functionCall = data.candidates[0].content.parts[0].functionCall;
-                    const functionName = functionCall.name;
-                    const args = functionCall.args || {};
-                    
-                    // Execute the function
-                    let result = await executeAdminFunction(functionName, args);
-                    updateAIResponse(`✅ ${result}`, 'success');
-                    
-                } else if (data.candidates && data.candidates[0].content.parts[0].text) {
-                    // Fallback to text response
-                    const responseText = data.candidates[0].content.parts[0].text;
-                    try {
-                        const jsonResponse = JSON.parse(responseText);
-                        if (jsonResponse.action) {
-                            let result = await executeAdminFunction(jsonResponse.action, jsonResponse.params || []);
-                            updateAIResponse(`✅ ${jsonResponse.message || result}`, 'success');
-                        } else {
-                            updateAIResponse(responseText, 'info');
-                        }
-                    } catch {
-                        updateAIResponse(responseText, 'info');
-                    }
-                } else {
-                    updateAIResponse('माफ़ करें, मैं इस कमांड को समझ नहीं पाया। कृपया दूसरे शब्दों में कोशिश करें।', 'error');
-                }
-
-            } catch (error) {
-                console.error('AI Command Error:', error);
-                updateAIResponse('AI सेवा में त्रुटि हुई। कृपया बाद में कोशिश करें।', 'error');
-            }
-
-            // Clear input
-            aiCommandInput.value = '';
-        }
-
-        async function executeAdminFunction(functionName, args) {
-            try {
-                switch (functionName) {
-                    case 'setTimer':
-                        const seconds = Array.isArray(args) ? args[0] : args.seconds;
-                        if (seconds >= 10 && seconds <= 300) {
-                            timerInput.value = seconds;
-                            setGameTimer();
-                            return `टाइमर ${seconds} सेकंड पर सेट किया गया`;
-                        } else {
-                            return 'टाइमर 10 से 300 सेकंड के बीच होना चाहिए';
-                        }
-                        
-                    case 'startBetting':
-                        startBetting();
-                        return 'बेटिंग शुरू की गई';
-                        
-                    case 'resetBets':
-                        resetBets();
-                        return 'सभी बेट्स रीसेट की गईं';
-                        
-                    case 'enableAI':
-                        enableAI();
-                        return 'AI चालू की गई';
-                        
-                    case 'disableAI':
-                        disableAI();
-                        return 'AI बंद की गई';
-                        
-                    case 'setResult':
-                        const result = Array.isArray(args) ? args[0] : args.result;
-                        if (['head', 'tail', 'burn'].includes(result)) {
-                            setResult(result);
-                            const resultText = result === 'head' ? 'चित' : result === 'tail' ? 'पट' : 'बर्न';
-                            return `परिणाम सेट किया गया: ${resultText}`;
-                        } else {
-                            return 'परिणाम head, tail, या burn होना चाहिए';
-                        }
-                        
-                    case 'addBoss':
-                        const name = Array.isArray(args) ? args[0] : args.name;
-                        const referralId = Array.isArray(args) ? args[1] : args.referralId;
-                        if (name && referralId) {
-                            bossName.value = name;
-                            bossReferralId.value = referralId;
-                            addBoss();
-                            return `बॉस ${name} (ID: ${referralId}) जोड़ा गया`;
-                        } else {
-                            return 'बॉस का नाम और रेफरल ID दोनों चाहिए';
-                        }
-                        
-                    default:
-                        return 'अज्ञात कमांड';
-                }
-            } catch (error) {
-                return 'कमांड निष्पादन में त्रुटि: ' + error.message;
-            }
-        }
-
-        function updateAIResponse(message, type = 'info') {
-            const responseDiv = aiCommandResponse;
-            const timestamp = new Date().toLocaleTimeString('hi-IN');
-            
-            let icon = '💬';
-            let color = 'text-blue-400';
-            
-            switch (type) {
-                case 'success':
-                    icon = '✅';
-                    color = 'text-green-400';
-                    break;
-                case 'error':
-                    icon = '❌';
-                    color = 'text-red-400';
-                    break;
-                case 'processing':
-                    icon = '⏳';
-                    color = 'text-yellow-400';
-                    break;
-            }
-            
-            responseDiv.innerHTML = `
-                <div class="flex items-start space-x-2">
-                    <span class="text-lg">${icon}</span>
-                    <div class="flex-1">
-                        <p class="${color} font-medium">${message}</p>
-                        <p class="text-gray-400 text-xs mt-1">${timestamp}</p>
-                    </div>
-                </div>
-            `;
-        }
-
-        // Make functions globally available
-        window.removeBoss = removeBoss;
-        window.approveWalletRequest = approveWalletRequest;
-        window.rejectWalletRequest = rejectWalletRequest;
-
-        // Initialize on page load
-        document.addEventListener('DOMContentLoaded', () => {
-            // Auto-login for demo purposes
-            // In production, remove this and use proper authentication
+            db.ref("requests/" + key).update({ status: "approved" });
+            alert("अनुरोध मंजूर");
+          };
         });
-    </script>
+
+        document.querySelectorAll(".reject").forEach(btn => {
+          btn.onclick = function () {
+            const key = this.getAttribute("data-key");
+            db.ref("requests/" + key).update({ status: "rejected" });
+          };
+        });
+      });
+    }
+  </script>
 </body>
 </html>
