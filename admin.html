@@ -80,6 +80,12 @@
             box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
         }
         
+        .bet-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
         .bet-button.heads {
             background: linear-gradient(45deg, #ffd700, #ffed4e);
             color: #333;
@@ -314,12 +320,11 @@
                     <label class="text-white block mb-2" data-en="Bet Amount:" data-hi="दांव की राशि:">Bet Amount:</label>
                     <div class="flex flex-wrap gap-2">
                         <button onclick="setBetAmount(10)" class="bet-button">₹10</button>
-                        <button onclick="setBetAmount(20)" class="bet-button">₹20</button>
                         <button onclick="setBetAmount(50)" class="bet-button">₹50</button>
                         <button onclick="setBetAmount(100)" class="bet-button">₹100</button>
                         <button onclick="setBetAmount(500)" class="bet-button">₹500</button>
                     </div>
-                    <input type="number" id="customBetAmount" placeholder="Custom Amount (10-2000)" min="10" max="2000" class="input-field mt-2">
+                    <input type="number" id="customBetAmount" placeholder="Manual Amount (10-1000)" min="10" max="1000" class="input-field mt-2">
                 </div>
 
                 <!-- Bet Buttons -->
@@ -332,29 +337,6 @@
                         <i class="fas fa-moon mr-2"></i>
                         <span data-en="BET TAILS" data-hi="पट पर दांव">BET TAILS</span>
                     </button>
-                </div>
-            </div>
-
-            <!-- Live Stats -->
-            <div class="glass-card">
-                <h3 class="text-white text-xl mb-4" data-en="Live Stats" data-hi="लाइव आंकड़े">Live Stats</h3>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-white">
-                    <div>
-                        <div class="text-yellow-300" data-en="Total on Heads" data-hi="चित पर कुल">Total on Heads</div>
-                        <div class="text-2xl">₹<span id="totalHeads">0</span></div>
-                    </div>
-                    <div>
-                        <div class="text-red-300" data-en="Total on Tails" data-hi="पट पर कुल">Total on Tails</div>
-                        <div class="text-2xl">₹<span id="totalTails">0</span></div>
-                    </div>
-                    <div>
-                        <div class="text-green-300" data-en="Total Players" data-hi="कुल खिलाड़ी">Total Players</div>
-                        <div class="text-2xl"><span id="totalPlayers">0</span></div>
-                    </div>
-                    <div>
-                        <div class="text-blue-300" data-en="Total Bets" data-hi="कुल दांव">Total Bets</div>
-                        <div class="text-2xl">₹<span id="totalBets">0</span></div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -655,6 +637,7 @@
         }
 
         async function placeBet(choice) {
+            // Check if betting is allowed (countdown > 0 and game is active)
             if (!gameData.isActive || gameData.countdown <= 0) {
                 alert(currentLanguage === 'hi' ? 'दांव लगाने का समय समाप्त हो गया!' : 'Betting time is over!');
                 return;
@@ -663,8 +646,8 @@
             const customAmount = document.getElementById('customBetAmount').value;
             const betAmount = customAmount ? parseInt(customAmount) : currentBetAmount;
 
-            if (betAmount < 10 || betAmount > 2000) {
-                alert(currentLanguage === 'hi' ? 'दांव की राशि ₹10 से ₹2000 के बीच होनी चाहिए!' : 'Bet amount must be between ₹10 and ₹2000!');
+            if (betAmount < 10 || betAmount > 1000) {
+                alert(currentLanguage === 'hi' ? 'दांव की राशि ₹10 से ₹1000 के बीच होनी चाहिए!' : 'Bet amount must be between ₹10 and ₹1000!');
                 return;
             }
 
@@ -1114,7 +1097,7 @@
                 }
             });
 
-            // Listen to current bets for live stats
+            // Listen to current bets for live stats (removed from user interface)
             database.ref('currentGame/bets').on('value', (snapshot) => {
                 const bets = snapshot.val() || {};
                 let totalHeads = 0, totalTails = 0, totalPlayers = 0;
@@ -1125,16 +1108,13 @@
                     if (bet.choice === 'tails') totalTails += bet.amount;
                 });
 
-                document.getElementById('totalHeads').textContent = totalHeads;
-                document.getElementById('totalTails').textContent = totalTails;
-                document.getElementById('totalPlayers').textContent = totalPlayers;
-                document.getElementById('totalBets').textContent = totalHeads + totalTails;
-
-                // Admin stats
-                document.getElementById('adminTotalHeads').textContent = totalHeads;
-                document.getElementById('adminTotalTails').textContent = totalTails;
-                document.getElementById('adminTotalPlayers').textContent = totalPlayers;
-                document.getElementById('adminTotalBets').textContent = totalHeads + totalTails;
+                // Admin stats only
+                if (document.getElementById('adminTotalHeads')) {
+                    document.getElementById('adminTotalHeads').textContent = totalHeads;
+                    document.getElementById('adminTotalTails').textContent = totalTails;
+                    document.getElementById('adminTotalPlayers').textContent = totalPlayers;
+                    document.getElementById('adminTotalBets').textContent = totalHeads + totalTails;
+                }
             });
         }
 
@@ -1150,9 +1130,18 @@
                 timeLeft--;
                 document.getElementById('countdown').textContent = Math.max(0, timeLeft);
                 
+                // Disable betting buttons when countdown reaches 0
                 if (timeLeft <= 0) {
                     clearInterval(countdownInterval);
                     document.getElementById('gameStatus').textContent = currentLanguage === 'hi' ? 'परिणाम का इंतज़ार...' : 'Waiting for result...';
+                    
+                    // Disable betting buttons
+                    document.getElementById('betHeadsBtn').disabled = true;
+                    document.getElementById('betTailsBtn').disabled = true;
+                } else {
+                    // Enable betting buttons when countdown is active
+                    document.getElementById('betHeadsBtn').disabled = false;
+                    document.getElementById('betTailsBtn').disabled = false;
                 }
             }, 1000);
         }
@@ -1164,8 +1153,15 @@
             if (gameData.isActive && gameData.countdown > 0) {
                 bettingInterface.classList.remove('hidden');
                 gameStatus.textContent = currentLanguage === 'hi' ? 'दांव लगाएं!' : 'Place your bets!';
+                
+                // Enable betting buttons
+                document.getElementById('betHeadsBtn').disabled = false;
+                document.getElementById('betTailsBtn').disabled = false;
             } else {
-                bettingInterface.classList.add('hidden');
+                // Disable betting buttons when game is not active
+                document.getElementById('betHeadsBtn').disabled = true;
+                document.getElementById('betTailsBtn').disabled = true;
+                
                 if (!gameData.result) {
                     gameStatus.textContent = currentLanguage === 'hi' ? 'अगले राउंड का इंतज़ार...' : 'Waiting for next round...';
                 }
@@ -1202,3 +1198,4 @@
     </script>
 </body>
 </html>
+
