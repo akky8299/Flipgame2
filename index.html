@@ -1,447 +1,1200 @@
 <!DOCTYPE html>
-<html lang="hi">
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>CoinFlip Game</title>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
-    body { background: #0f0f1e; color: white; }
-    .container { max-width: 1200px; margin: auto; padding: 20px; text-align: center; }
-    .lang-switch { position: absolute; top: 20px; right: 20px; font-size: 14px; }
-    button { padding: 10px 20px; margin: 5px; border: none; border-radius: 8px; cursor: pointer; }
-    .btn-primary { background: #007bff; color: white; }
-    .btn-success { background: #28a745; color: white; }
-    .btn-danger { background: #dc3545; color: white; }
-    .btn-warning { background: #ffc107; color: black; }
-    .wallet { position: fixed; top: 20px; left: 20px; background: #222; padding: 10px; border-radius: 8px; font-weight: bold; }
-    .coin { width: 150px; height: 150px; margin: 30px auto; background: #ddd; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; transition: transform 2s; }
-    .flip { animation: flip 2s ease; }
-    @keyframes flip { 0% { transform: rotateY(0); } 100% { transform: rotateY(1800deg); } }
-    .countdown { font-size: 32px; margin: 20px; color: #ffc107; }
-    .bet-area { margin: 20px; }
-    .bet-btn { background: #444; color: white; }
-    .result { font-size: 24px; margin: 20px; color: #00ff00; }
-    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; }
-    .modal-content { background: #1e1e2f; padding: 30px; border-radius: 12px; width: 90%; max-width: 500px; }
-    input, select { width: 100%; padding: 10px; margin: 10px 0; border-radius: 6px; border: 1px solid #444; background: #222; color: white; }
-    .active-boss { margin: 20px 0; }
-    .user-list { text-align: left; margin-top: 10px; }
-    .user-item { padding: 8px; background: #222; margin: 5px 0; border-radius: 6px; }
-    .green-light { display: inline-block; width: 12px; height: 12px; background: #0f0; border-radius: 50%; margin-right: 8px; }
-    footer { margin-top: 50px; color: #aaa; font-size: 12px; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CoinKing - Multiplayer Coin Game</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .coin {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.6s;
+            margin: 0 auto;
+        }
+        
+        .coin-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            backface-visibility: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        .coin-heads {
+            background: linear-gradient(45deg, #ffd700, #ffed4e);
+            border: 4px solid #b8860b;
+        }
+        
+        .coin-tails {
+            background: linear-gradient(45deg, #c0392b, #e74c3c);
+            border: 4px solid #922b21;
+            transform: rotateY(180deg);
+        }
+        
+        .coin.flip {
+            animation: coinFlip 3s ease-in-out;
+        }
+        
+        @keyframes coinFlip {
+            0% { transform: rotateY(0deg); }
+            50% { transform: rotateY(1800deg) rotateX(720deg); }
+            100% { transform: rotateY(1800deg); }
+        }
+        
+        .bet-button {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            border: none;
+            color: white;
+            padding: 12px 24px;
+            margin: 5px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+        }
+        
+        .bet-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+        }
+        
+        .bet-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .bet-button.heads {
+            background: linear-gradient(45deg, #ffd700, #ffed4e);
+            color: #333;
+            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+        }
+        
+        .bet-button.tails {
+            background: linear-gradient(45deg, #c0392b, #e74c3c);
+            box-shadow: 0 4px 15px rgba(192, 57, 43, 0.3);
+        }
+        
+        .countdown {
+            font-family: 'Orbitron', monospace;
+            font-size: 48px;
+            font-weight: 900;
+            text-align: center;
+            color: #fff;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.8);
+            margin: 20px 0;
+        }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 20px;
+            margin: 10px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        .wallet-balance {
+            background: linear-gradient(45deg, #f39c12, #e67e22);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(243, 156, 18, 0.3);
+        }
+        
+        .online-indicator {
+            width: 10px;
+            height: 10px;
+            background: #2ecc71;
+            border-radius: 50%;
+            display: inline-block;
+            margin-left: 5px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .admin-panel {
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            color: white;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-danger {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .input-field {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            padding: 10px;
+            color: white;
+            width: 100%;
+            margin: 5px 0;
+        }
+        
+        .input-field::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 30px;
+            border-radius: 20px;
+            max-width: 90%;
+            max-height: 90%;
+            overflow-y: auto;
+            color: white;
+        }
+        
+        @media (max-width: 768px) {
+            .coin {
+                width: 120px;
+                height: 120px;
+            }
+            
+            .countdown {
+                font-size: 36px;
+            }
+            
+            .bet-button {
+                padding: 10px 15px;
+                font-size: 14px;
+            }
+        }
+    </style>
 </head>
 <body>
-  <div class="lang-switch">
-    <button id="langToggle">Switch to English</button>
-  </div>
-
-  <div class="wallet" id="wallet">₹0</div>
-
-  <div class="container" id="app">
-    <!-- Login Screen -->
-    <div id="loginScreen">
-      <h1 id="title">कॉइन फ्लिप गेम</h1>
-      <p id="desc">Google खाते से साइन इन करें</p>
-      <button id="googleLogin" class="btn-primary">Google से साइन इन करें</button>
-    </div>
-
-    <!-- Signup Referral Screen -->
-    <div id="signupScreen" style="display:none;">
-      <h2 id="refTitle">साइन अप करें</h2>
-      <p id="refDesc">रेफरल आईडी (वैकल्पिक)</p>
-      <input type="text" id="referralInput" placeholder="रेफरल आईडी डालें" />
-      <button id="submitSignup" class="btn-success">जारी रखें</button>
-    </div>
-
-    <!-- Main Game -->
-    <div id="gameScreen" style="display:none;">
-      <h1 id="gameTitle">कॉइन फ्लिप गेम</h1>
-      <div class="countdown" id="countdown">अगला राउंड: --</div>
-      <div class="coin" id="coin">?</div>
-      <div class="result" id="result"></div>
-
-      <div class="bet-area">
-        <h3 id="betTitle">दांव लगाएं</h3>
-        <div>
-          <button class="bet-btn" data-amount="10">₹10</button>
-          <button class="bet-btn" data-amount="20">₹20</button>
-          <button class="bet-btn" data-amount="50">₹50</button>
-          <button class="bet-btn" data-amount="100">₹100</button>
-          <button class="bet-btn" data-amount="500">₹500</button>
-        </div>
-        <div>
-          <button id="betHeads" class="btn-primary" disabled>चित</button>
-          <button id="betTails" class="btn-warning" disabled>पट</button>
-        </div>
-      </div>
-
-      <div class="active-boss">
-        <h3 id="bossTitle">एक्टिव बॉस चुनें</h3>
-        <select id="bossSelect">
-          <option value="">कोई बॉस नहीं</option>
+    <!-- Language Switch -->
+    <div class="fixed top-4 right-4 z-50">
+        <select id="languageSelect" class="bg-white bg-opacity-20 text-white border border-white border-opacity-30 rounded-lg px-3 py-1">
+            <option value="en">English</option>
+            <option value="hi">हिंदी</option>
         </select>
-        <div class="user-list" id="userList"></div>
-      </div>
-
-      <!-- Navigation -->
-      <div>
-        <button id="profileBtn" class="btn-success">प्रोफ़ाइल</button>
-        <button id="walletBtn" class="btn-warning">वॉलेट</button>
-        <button id="logoutBtn" class="btn-danger">लॉग आउट</button>
-      </div>
     </div>
-  </div>
 
-  <!-- Profile Modal -->
-  <div class="modal" id="profileModal">
-    <div class="modal-content">
-      <h2>प्रोफ़ाइल</h2>
-      <p>UID: <span id="profileUid"></span></p>
-      <p>ईमेल: <span id="profileEmail"></span></p>
-      <p>कुल लाभ: ₹<span id="totalProfit">0</span></p>
-      <p>कुल नुकसान: ₹<span id="totalLoss">0</span></p>
-      <p>सक्रिय समय: <span id="activeTime">0 मिनट</span></p>
-      <button onclick="closeModal('profileModal')">बंद करें</button>
+    <!-- Main Game Container -->
+    <div id="gameContainer" class="container mx-auto px-4 py-8">
+        
+        <!-- Login/Signup Form -->
+        <div id="authContainer" class="glass-card max-w-md mx-auto">
+            <h2 class="text-3xl font-bold text-white text-center mb-6" data-en="Welcome to CoinKing" data-hi="CoinKing में आपका स्वागत है">Welcome to CoinKing</h2>
+            
+            <div id="loginForm">
+                <h3 class="text-xl text-white mb-4" data-en="Login" data-hi="लॉगिन">Login</h3>
+                <input type="email" id="loginEmail" placeholder="Email" class="input-field">
+                <input type="password" id="loginPassword" placeholder="Password" class="input-field">
+                <button onclick="login()" class="btn-primary w-full mt-4" data-en="Login" data-hi="लॉगिन">Login</button>
+                <p class="text-white text-center mt-4">
+                    <span data-en="Don't have an account?" data-hi="खाता नहीं है?">Don't have an account?</span>
+                    <a href="#" onclick="showSignup()" class="text-yellow-300 underline" data-en="Sign Up" data-hi="साइन अप करें">Sign Up</a>
+                </p>
+            </div>
+
+            <div id="signupForm" class="hidden">
+                <h3 class="text-xl text-white mb-4" data-en="Sign Up" data-hi="साइन अप">Sign Up</h3>
+                <input type="text" id="signupName" placeholder="Full Name" class="input-field">
+                <input type="email" id="signupEmail" placeholder="Email" class="input-field">
+                <input type="password" id="signupPassword" placeholder="Password" class="input-field">
+                <input type="text" id="referralId" placeholder="Referral ID (Optional)" class="input-field">
+                <button onclick="signup()" class="btn-primary w-full mt-4" data-en="Sign Up" data-hi="साइन अप करें">Sign Up</button>
+                <p class="text-white text-center mt-4">
+                    <span data-en="Already have an account?" data-hi="पहले से खाता है?">Already have an account?</span>
+                    <a href="#" onclick="showLogin()" class="text-yellow-300 underline" data-en="Login" data-hi="लॉगिन करें">Login</a>
+                </p>
+            </div>
+        </div>
+
+        <!-- Main Game Interface -->
+        <div id="gameInterface" class="hidden">
+            <!-- Top Navigation -->
+            <div class="flex justify-between items-center mb-6">
+                <div class="flex items-center space-x-4">
+                    <button onclick="showProfile()" class="btn-primary">
+                        <i class="fas fa-user mr-2"></i>
+                        <span data-en="Profile" data-hi="प्रोफ़ाइल">Profile</span>
+                    </button>
+                    <button onclick="showActiveBoss()" class="btn-primary">
+                        <i class="fas fa-crown mr-2"></i>
+                        <span data-en="Active Boss" data-hi="सक्रिय बॉस">Active Boss</span>
+                    </button>
+                </div>
+                <div class="wallet-balance cursor-pointer" onclick="showWallet()">
+                    <i class="fas fa-wallet mr-2"></i>
+                    ₹<span id="walletBalance">0</span>
+                </div>
+            </div>
+
+            <!-- Coin Animation Area -->
+            <div class="glass-card text-center">
+                <div class="coin" id="coin">
+                    <div class="coin-face coin-heads">
+                        <i class="fas fa-star"></i>
+                        <div class="ml-2" data-en="HEADS" data-hi="चित">HEADS</div>
+                    </div>
+                    <div class="coin-face coin-tails">
+                        <i class="fas fa-moon"></i>
+                        <div class="ml-2" data-en="TAILS" data-hi="पट">TAILS</div>
+                    </div>
+                </div>
+                
+                <!-- Countdown Timer -->
+                <div class="countdown" id="countdown">--</div>
+                
+                <!-- Game Status -->
+                <div id="gameStatus" class="text-white text-xl mb-4" data-en="Waiting for next round..." data-hi="अगले राउंड का इंतज़ार...">Waiting for next round...</div>
+            </div>
+
+            <!-- Betting Interface -->
+            <div class="glass-card" id="bettingInterface">
+                <h3 class="text-white text-xl mb-4" data-en="Place Your Bet" data-hi="अपना दांव लगाएं">Place Your Bet</h3>
+                
+                <!-- Bet Amount Selection -->
+                <div class="mb-4">
+                    <label class="text-white block mb-2" data-en="Bet Amount:" data-hi="दांव की राशि:">Bet Amount:</label>
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="setBetAmount(10)" class="bet-button">₹10</button>
+                        <button onclick="setBetAmount(50)" class="bet-button">₹50</button>
+                        <button onclick="setBetAmount(100)" class="bet-button">₹100</button>
+                        <button onclick="setBetAmount(500)" class="bet-button">₹500</button>
+                    </div>
+                    <input type="number" id="customBetAmount" placeholder="Manual Amount (10-1000)" min="10" max="1000" class="input-field mt-2">
+                </div>
+
+                <!-- Bet Buttons -->
+                <div class="flex justify-center gap-4">
+                    <button onclick="placeBet('heads')" class="bet-button heads" id="betHeadsBtn">
+                        <i class="fas fa-star mr-2"></i>
+                        <span data-en="BET HEADS" data-hi="चित पर दांव">BET HEADS</span>
+                    </button>
+                    <button onclick="placeBet('tails')" class="bet-button tails" id="betTailsBtn">
+                        <i class="fas fa-moon mr-2"></i>
+                        <span data-en="BET TAILS" data-hi="पट पर दांव">BET TAILS</span>
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
 
-  <!-- Wallet Modal -->
-  <div class="modal" id="walletModal">
-    <div class="modal-content">
-      <h2>वॉलेट</h2>
-      <p>कुल शेष: ₹<span id="walletBalance">0</span></p>
-      <input type="number" id="addAmount" placeholder="राशि जोड़ें (₹200+)" min="200" />
-      <button id="addMoneyBtn" class="btn-success">पैसे जोड़ें</button>
-      <input type="number" id="withdrawAmount" placeholder="निकालें (₹4000+)" min="4000" />
-      <button id="withdrawBtn" class="btn-danger">निकालें</button>
-      <button onclick="closeModal('walletModal')">बंद करें</button>
+    <!-- Profile Modal -->
+    <div id="profileModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold" data-en="Player Profile" data-hi="खिलाड़ी प्रोफ़ाइल">Player Profile</h2>
+                <button onclick="closeModal('profileModal')" class="text-white">
+                    <i class="fas fa-times fa-2x"></i>
+                </button>
+            </div>
+            <div id="profileContent">
+                <!-- Profile content will be loaded here -->
+            </div>
+            <button onclick="logout()" class="btn-danger mt-4" data-en="Logout" data-hi="लॉगआउट">Logout</button>
+        </div>
     </div>
-  </div>
 
-  <footer>© 2025 CoinFlip Game. All rights reserved.</footer>
+    <!-- Active Boss Modal -->
+    <div id="activeBossModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold" data-en="Active Boss" data-hi="सक्रिय बॉस">Active Boss</h2>
+                <button onclick="closeModal('activeBossModal')" class="text-white">
+                    <i class="fas fa-times fa-2x"></i>
+                </button>
+            </div>
+            <div id="activeBossContent">
+                <!-- Active boss content will be loaded here -->
+            </div>
+        </div>
+    </div>
 
-  <script>
-    // Firebase Config
-    const firebaseConfig = {
-      apiKey: "AIzaSyAWFRw8XzqGF011OdzRO8WzaXcCF5Uzsxg",
-      authDomain: "flipcoin-1030e.firebaseapp.com",
-      databaseURL: "https://flipcoin-1030e-default-rtdb.firebaseio.com",
-      projectId: "flipcoin-1030e",
-      storageBucket: "flipcoin-1030e.firebasestorage.app",
-      messagingSenderId: "485574721435",
-      appId: "1:485574721435:web:9c4713a57521128f122b3e",
-      measurementId: "G-JKG0KTMTBQ"
-    };
+    <!-- Wallet Modal -->
+    <div id="walletModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold" data-en="Wallet" data-hi="वॉलेट">Wallet</h2>
+                <button onclick="closeModal('walletModal')" class="text-white">
+                    <i class="fas fa-times fa-2x"></i>
+                </button>
+            </div>
+            <div class="mb-4">
+                <div class="text-xl mb-2" data-en="Current Balance:" data-hi="वर्तमान बैलेंस:">Current Balance:</div>
+                <div class="text-3xl font-bold text-yellow-300">₹<span id="modalWalletBalance">0</span></div>
+            </div>
+            <div class="flex gap-4">
+                <button onclick="showAddMoney()" class="btn-primary flex-1" data-en="Add Money" data-hi="पैसे जोड़ें">Add Money</button>
+                <button onclick="showWithdraw()" class="btn-primary flex-1" data-en="Withdraw" data-hi="निकासी">Withdraw</button>
+            </div>
+            <div id="addMoneyForm" class="hidden mt-4">
+                <h3 class="text-lg mb-2" data-en="Add Money (Min: ₹200)" data-hi="पैसे जोड़ें (न्यूनतम: ₹200)">Add Money (Min: ₹200)</h3>
+                <input type="number" id="addAmount" placeholder="Amount" min="200" class="input-field">
+                <button onclick="requestAddMoney()" class="btn-primary mt-2" data-en="Request Add Money" data-hi="पैसे जोड़ने का अनुरोध">Request Add Money</button>
+            </div>
+            <div id="withdrawForm" class="hidden mt-4">
+                <h3 class="text-lg mb-2" data-en="Withdraw Money (Min: ₹4000)" data-hi="पैसे निकालें (न्यूनतम: ₹4000)">Withdraw Money (Min: ₹4000)</h3>
+                <input type="number" id="withdrawAmount" placeholder="Amount" min="4000" class="input-field">
+                <button onclick="requestWithdraw()" class="btn-primary mt-2" data-en="Request Withdrawal" data-hi="निकासी का अनुरोध">Request Withdrawal</button>
+            </div>
+        </div>
+    </div>
 
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.database();
+    <!-- Admin Panel -->
+    <div id="adminPanel" class="hidden">
+        <div class="container mx-auto px-4 py-8">
+            <div class="admin-panel">
+                <h1 class="text-3xl font-bold mb-6">CoinKing Admin Panel</h1>
+                
+                <!-- Game Controls -->
+                <div class="glass-card mb-6">
+                    <h2 class="text-xl font-bold mb-4">Game Controls</h2>
+                    <div class="flex flex-wrap gap-4 mb-4">
+                        <input type="number" id="adminCountdown" placeholder="Countdown (seconds)" class="input-field" style="width: 200px;">
+                        <button onclick="startBetting()" class="btn-primary">Start Betting</button>
+                        <button onclick="resetGame()" class="btn-danger">Reset Game</button>
+                    </div>
+                    <div class="flex gap-4">
+                        <button onclick="setResult('heads')" class="bet-button heads">Result: HEADS</button>
+                        <button onclick="setResult('tails')" class="bet-button tails">Result: TAILS</button>
+                        <button onclick="setResult('burn')" class="bet-button">Burn Coin</button>
+                    </div>
+                </div>
 
-    // Language Toggle
-    let lang = 'hi';
-    const translations = {
-      hi: {
-        title: "कॉइन फ्लिप गेम",
-        desc: "Google खाते से साइन इन करें",
-        refTitle: "साइन अप करें",
-        refDesc: "रेफरल आईडी (वैकल्पिक)",
-        gameTitle: "कॉइन फ्लिप गेम",
-        betTitle: "दांव लगाएं",
-        bossTitle: "एक्टिव बॉस चुनें",
-        langSwitch: "Switch to English",
-        logout: "लॉग आउट",
-        profile: "प्रोफ़ाइल",
-        wallet: "वॉलेट"
-      },
-      en: {
-        title: "Coin Flip Game",
-        desc: "Sign in with Google Account",
-        refTitle: "Sign Up",
-        refDesc: "Referral ID (Optional)",
-        gameTitle: "Coin Flip Game",
-        betTitle: "Place Bet",
-        bossTitle: "Select Active Boss",
-        langSwitch: "हिंदी में बदलें",
-        logout: "Log Out",
-        profile: "Profile",
-        wallet: "Wallet"
-      }
-    };
+                <!-- Boss Management -->
+                <div class="glass-card mb-6">
+                    <h2 class="text-xl font-bold mb-4">Boss Management</h2>
+                    <div class="flex gap-4 mb-4">
+                        <input type="text" id="bossName" placeholder="Boss Name" class="input-field">
+                        <input type="text" id="bossReferralId" placeholder="Referral ID" class="input-field">
+                        <button onclick="addBoss()" class="btn-primary">Add Boss</button>
+                    </div>
+                    <div id="bossList"></div>
+                </div>
 
-    document.getElementById("langToggle").onclick = () => {
-      lang = lang === 'hi' ? 'en' : 'hi';
-      updateLanguage();
-    };
+                <!-- Live Game Stats -->
+                <div class="glass-card mb-6">
+                    <h2 class="text-xl font-bold mb-4">Live Game Stats</h2>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div>
+                            <div class="text-yellow-300">Total on Heads</div>
+                            <div class="text-2xl">₹<span id="adminTotalHeads">0</span></div>
+                        </div>
+                        <div>
+                            <div class="text-red-300">Total on Tails</div>
+                            <div class="text-2xl">₹<span id="adminTotalTails">0</span></div>
+                        </div>
+                        <div>
+                            <div class="text-green-300">Active Players</div>
+                            <div class="text-2xl"><span id="adminTotalPlayers">0</span></div>
+                        </div>
+                        <div>
+                            <div class="text-blue-300">Total Bets</div>
+                            <div class="text-2xl">₹<span id="adminTotalBets">0</span></div>
+                        </div>
+                    </div>
+                </div>
 
-    function updateLanguage() {
-      const t = translations[lang];
-      document.getElementById("title").textContent = t.title;
-      document.getElementById("desc").textContent = t.desc;
-      document.getElementById("refTitle").textContent = t.refTitle;
-      document.getElementById("refDesc").textContent = t.refDesc;
-      document.getElementById("gameTitle").textContent = t.gameTitle;
-      document.getElementById("betTitle").textContent = t.betTitle;
-      document.getElementById("bossTitle").textContent = t.bossTitle;
-      document.getElementById("langToggle").textContent = t.langSwitch;
-      document.getElementById("logoutBtn").textContent = t.logout;
-      document.getElementById("profileBtn").textContent = t.profile;
-      document.getElementById("walletBtn").textContent = t.wallet;
-    }
+                <!-- Wallet Requests -->
+                <div class="glass-card">
+                    <h2 class="text-xl font-bold mb-4">Wallet Requests</h2>
+                    <div id="walletRequests"></div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    // Auth
-    const googleLogin = document.getElementById("googleLogin");
-    const loginScreen = document.getElementById("loginScreen");
-    const signupScreen = document.getElementById("signupScreen");
-    const gameScreen = document.getElementById("gameScreen");
-    const submitSignup = document.getElementById("submitSignup");
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
 
-    googleLogin.onclick = () => {
-      const provider = new firebase.auth.GoogleAuthProvider();
-      auth.signInWithPopup(provider);
-    };
-
-    auth.onAuthStateChanged(user => {
-      if (user) {
-        const userRef = db.ref("users/" + user.uid);
-        userRef.once("value").then(snapshot => {
-          if (!snapshot.exists()) {
-            signupScreen.style.display = "block";
-            loginScreen.style.display = "none";
-          } else {
-            showGame(user);
-          }
-        });
-      } else {
-        loginScreen.style.display = "block";
-        signupScreen.style.display = "none";
-        gameScreen.style.display = "none";
-      }
-    });
-
-    submitSignup.onclick = () => {
-      const user = auth.currentUser;
-      const referralId = document.getElementById("referralInput").value.trim();
-      const userData = {
-        uid: user.uid,
-        email: user.email,
-        displayName: user.displayName,
-        photoURL: user.photoURL,
-        balance: 0,
-        referralId: referralId || null,
-        totalProfit: 0,
-        totalLoss: 0,
-        activeTime: 0,
-        joinedAt: new Date().toISOString(),
-        lastActive: new Date().toISOString()
-      };
-
-      if (referralId) {
-        db.ref("referrals/" + referralId).push(user.uid).then(() => {
-          db.ref("users/" + user.uid).set(userData);
-          db.ref("users/" + user.uid + "/balance").transaction(current => {
-            return (current || 0) >= 1 ? current : 100;
-          });
-          alert("₹100 बोनस मिला!");
-          showGame(user);
-        });
-      } else {
-        db.ref("users/" + user.uid).set(userData);
-        showGame(user);
-      }
-    };
-
-    function showGame(user) {
-      loginScreen.style.display = "none";
-      signupScreen.style.display = "none";
-      gameScreen.style.display = "block";
-      document.getElementById("wallet").textContent = "₹0";
-      loadBosses();
-      setupRealtimeGame(user);
-      setupNavigation(user);
-    }
-
-    function setupNavigation(user) {
-      document.getElementById("logoutBtn").onclick = () => {
-        auth.signOut();
-      };
-
-      document.getElementById("profileBtn").onclick = () => {
-        const modal = document.getElementById("profileModal");
-        db.ref("users/" + user.uid).once("value").then(snap => {
-          const data = snap.val();
-          document.getElementById("profileUid").textContent = data.uid;
-          document.getElementById("profileEmail").textContent = data.email;
-          document.getElementById("totalProfit").textContent = data.totalProfit || 0;
-          document.getElementById("totalLoss").textContent = data.totalLoss || 0;
-          document.getElementById("activeTime").textContent = Math.floor((data.activeTime || 0)/60) + " मिनट";
-        });
-        modal.style.display = "flex";
-      };
-
-      document.getElementById("walletBtn").onclick = () => {
-        const modal = document.getElementById("walletModal");
-        db.ref("users/" + user.uid + "/balance").on("value", s => {
-          document.getElementById("walletBalance").textContent = s.val() || 0;
-        });
-        modal.style.display = "flex";
-      };
-
-      document.getElementById("addMoneyBtn").onclick = () => {
-        const amt = parseInt(document.getElementById("addAmount").value);
-        if (amt >= 200) {
-          db.ref("requests/").push({
-            uid: user.uid,
-            amount: amt,
-            type: "add",
-            status: "pending",
-            timestamp: new Date().toISOString()
-          });
-          alert("अनुरोध भेजा गया। एडमिन अनुमति देगा।");
-        } else {
-          alert("कम से कम ₹200 जोड़ें");
-        }
-      };
-
-      document.getElementById("withdrawBtn").onclick = () => {
-        const amt = parseInt(document.getElementById("withdrawAmount").value);
-        if (amt >= 4000) {
-          db.ref("requests/").push({
-            uid: user.uid,
-            amount: amt,
-            type: "withdraw",
-            status: "pending",
-            timestamp: new Date().toISOString()
-          });
-          alert("निकासी अनुरोध भेजा गया।");
-        } else {
-          alert("कम से कम ₹4000 निकालें");
-        }
-      };
-    }
-
-    function closeModal(id) {
-      document.getElementById(id).style.display = "none";
-    }
-
-    // Boss System
-    function loadBosses() {
-      db.ref("bosses/").on("value", snap => {
-        const select = document.getElementById("bossSelect");
-        select.innerHTML = "<option value=''>कोई बॉस नहीं</option>";
-        snap.forEach(child => {
-          const boss = child.val();
-          const opt = document.createElement("option");
-          opt.value = child.key;
-          opt.textContent = boss.name;
-          select.appendChild(opt);
-        });
-      });
-
-      document.getElementById("bossSelect").onchange = function () {
-        const bossId = this.value;
-        const list = document.getElementById("userList");
-        list.innerHTML = "";
-        if (!bossId) return;
-
-        db.ref("referrals/" + bossId).on("value", snap => {
-          snap.forEach(child => {
-            const uid = child.val();
-            db.ref("users/" + uid).once("value").then(u => {
-              if (u.exists()) {
-                const li = document.createElement("div");
-                li.className = "user-item";
-                li.innerHTML = `<span class="green-light"></span> ${u.val().displayName || u.val().email}`;
-                list.appendChild(li);
-              }
-            });
-          });
-        });
-      };
-    }
-
-    // Realtime Game Logic
-    function setupRealtimeGame(user) {
-      const coin = document.getElementById("coin");
-      const resultDiv = document.getElementById("result");
-      const countdown = document.getElementById("countdown");
-      const betHeads = document.getElementById("betHeads");
-      const betTails = document.getElementById("betTails");
-
-      let currentBet = 0;
-
-      // Bet buttons
-      document.querySelectorAll(".bet-btn").forEach(btn => {
-        btn.onclick = () => {
-          currentBet = parseInt(btn.getAttribute("data-amount"));
-          alert(`₹${currentBet} का दांव चयनित`);
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBolnOupTsxH6haPUWnWv4gJOSiZgp-y30",
+            authDomain: "coinking-d5d5e.firebaseapp.com",
+            databaseURL: "https://coinking-d5d5e-default-rtdb.firebaseio.com",
+            projectId: "coinking-d5d5e",
+            storageBucket: "coinking-d5d5e.firebasestorage.app",
+            messagingSenderId: "489710882522",
+            appId: "1:489710882522:web:9fcecfd5b6ffd3c3d61fe3",
+            measurementId: "G-D4HY1RHEWV"
         };
-      });
 
-      betHeads.onclick = () => {
-        if (currentBet < 10 || currentBet > 2000) {
-          alert("₹10 से ₹2000 के बीच दांव लगाएं");
-          return;
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const database = firebase.database();
+
+        // Gemini API Configuration
+        const GEMINI_API_KEY = 'AIzaSyDkRBSjzlCQ98BkuI37uQh_7ntHgVgMk6E';
+        const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`;
+
+        // Global Variables
+        let currentUser = null;
+        let currentLanguage = 'en';
+        let gameData = {
+            countdown: 0,
+            isActive: false,
+            totalHeads: 0,
+            totalTails: 0,
+            totalPlayers: 0,
+            result: null
+        };
+        let userBets = {};
+        let currentBetAmount = 10;
+        let countdownInterval = null;
+
+        // Language switching
+        function switchLanguage() {
+            const select = document.getElementById('languageSelect');
+            currentLanguage = select.value;
+            updateLanguage();
         }
-        db.ref("bets/" + user.uid).set({
-          uid: user.uid,
-          amount: currentBet,
-          choice: "heads",
-          timestamp: new Date().getTime()
+
+        function updateLanguage() {
+            const elements = document.querySelectorAll('[data-en][data-hi]');
+            elements.forEach(element => {
+                element.textContent = element.getAttribute(`data-${currentLanguage}`);
+            });
+        }
+
+        document.getElementById('languageSelect').addEventListener('change', switchLanguage);
+
+        // Authentication Functions
+        function showSignup() {
+            document.getElementById('loginForm').classList.add('hidden');
+            document.getElementById('signupForm').classList.remove('hidden');
+        }
+
+        function showLogin() {
+            document.getElementById('signupForm').classList.add('hidden');
+            document.getElementById('loginForm').classList.remove('hidden');
+        }
+
+        async function signup() {
+            const name = document.getElementById('signupName').value;
+            const email = document.getElementById('signupEmail').value;
+            const password = document.getElementById('signupPassword').value;
+            const referralId = document.getElementById('referralId').value;
+
+            try {
+                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                const user = userCredential.user;
+                
+                // Create user profile
+                const userData = {
+                    name: name,
+                    email: email,
+                    referralId: referralId || null,
+                    wallet: referralId ? 100 : 0, // Bonus for referral
+                    totalProfit: 0,
+                    totalLoss: 0,
+                    activeTime: 0,
+                    joinedAt: Date.now()
+                };
+
+                await database.ref('users/' + user.uid).set(userData);
+                
+                if (email === 'akky9453226641@gmail.com') {
+                    await database.ref('admins/' + user.uid).set(true);
+                }
+
+                alert(currentLanguage === 'hi' ? 'खाता सफलतापूर्वक बनाया गया!' : 'Account created successfully!');
+                
+            } catch (error) {
+                alert(error.message);
+            }
+        }
+
+        async function login() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            try {
+                await auth.signInWithEmailAndPassword(email, password);
+            } catch (error) {
+                alert(error.message);
+            }
+        }
+
+        function logout() {
+            auth.signOut();
+        }
+
+        // Auth State Observer
+        auth.onAuthStateChanged(async (user) => {
+            if (user) {
+                currentUser = user;
+                
+                // Check if admin
+                const adminRef = await database.ref('admins/' + user.uid).once('value');
+                if (adminRef.exists()) {
+                    showAdminPanel();
+                } else {
+                    showGameInterface();
+                }
+                
+                // Load user data
+                loadUserData();
+                
+                // Start listening to game updates
+                listenToGameUpdates();
+                
+            } else {
+                currentUser = null;
+                showAuthContainer();
+            }
         });
-        alert("चित पर दांव लगाया");
-      };
 
-      betTails.onclick = () => {
-        if (currentBet < 10 || currentBet > 2000) {
-          alert("₹10 से ₹2000 के बीच दांव लगाएं");
-          return;
+        function showAuthContainer() {
+            document.getElementById('authContainer').classList.remove('hidden');
+            document.getElementById('gameInterface').classList.add('hidden');
+            document.getElementById('adminPanel').classList.add('hidden');
         }
-        db.ref("bets/" + user.uid).set({
-          uid: user.uid,
-          amount: currentBet,
-          choice: "tails",
-          timestamp: new Date().getTime()
+
+        function showGameInterface() {
+            document.getElementById('authContainer').classList.add('hidden');
+            document.getElementById('gameInterface').classList.remove('hidden');
+            document.getElementById('adminPanel').classList.add('hidden');
+        }
+
+        function showAdminPanel() {
+            document.getElementById('authContainer').classList.add('hidden');
+            document.getElementById('gameInterface').classList.add('hidden');
+            document.getElementById('adminPanel').classList.remove('hidden');
+            loadAdminData();
+        }
+
+        // Game Functions
+        function setBetAmount(amount) {
+            currentBetAmount = amount;
+            document.getElementById('customBetAmount').value = amount;
+        }
+
+        async function placeBet(choice) {
+            // Check if betting is allowed (countdown > 0 and game is active)
+            if (!gameData.isActive || gameData.countdown <= 0) {
+                alert(currentLanguage === 'hi' ? 'दांव लगाने का समय समाप्त हो गया!' : 'Betting time is over!');
+                return;
+            }
+
+            const customAmount = document.getElementById('customBetAmount').value;
+            const betAmount = customAmount ? parseInt(customAmount) : currentBetAmount;
+
+            if (betAmount < 10 || betAmount > 1000) {
+                alert(currentLanguage === 'hi' ? 'दांव की राशि ₹10 से ₹1000 के बीच होनी चाहिए!' : 'Bet amount must be between ₹10 and ₹1000!');
+                return;
+            }
+
+            // Check wallet balance
+            const userRef = await database.ref('users/' + currentUser.uid).once('value');
+            const userData = userRef.val();
+            
+            if (userData.wallet < betAmount) {
+                alert(currentLanguage === 'hi' ? 'वॉलेट में पर्याप्त राशि नहीं है!' : 'Insufficient wallet balance!');
+                return;
+            }
+
+            // Place bet
+            const betData = {
+                userId: currentUser.uid,
+                choice: choice,
+                amount: betAmount,
+                timestamp: Date.now()
+            };
+
+            await database.ref('currentGame/bets/' + currentUser.uid).set(betData);
+            
+            // Update user wallet
+            await database.ref('users/' + currentUser.uid + '/wallet').set(userData.wallet - betAmount);
+            
+            alert(currentLanguage === 'hi' ? `₹${betAmount} का दांव ${choice === 'heads' ? 'चित' : 'पट'} पर लगाया गया!` : `₹${betAmount} bet placed on ${choice}!`);
+        }
+
+        function flipCoin(result) {
+            const coin = document.getElementById('coin');
+            coin.classList.add('flip');
+            
+            setTimeout(() => {
+                coin.classList.remove('flip');
+                if (result === 'heads') {
+                    coin.style.transform = 'rotateY(0deg)';
+                } else if (result === 'tails') {
+                    coin.style.transform = 'rotateY(180deg)';
+                }
+            }, 3000);
+        }
+
+        // Admin Functions
+        async function startBetting() {
+            const countdownTime = parseInt(document.getElementById('adminCountdown').value);
+            if (!countdownTime || countdownTime < 5) {
+                alert('Please enter a valid countdown time (minimum 5 seconds)');
+                return;
+            }
+
+            // Use Gemini AI for automatic countdown
+            await useGeminiAI(countdownTime);
+        }
+
+        async function useGeminiAI(countdownTime) {
+            try {
+                // Start countdown
+                await database.ref('currentGame').update({
+                    isActive: true,
+                    countdown: countdownTime,
+                    startTime: Date.now()
+                });
+
+                // Get current bets for AI decision
+                setTimeout(async () => {
+                    const betsRef = await database.ref('currentGame/bets').once('value');
+                    const bets = betsRef.val() || {};
+                    
+                    let totalHeads = 0, totalTails = 0;
+                    
+                    Object.values(bets).forEach(bet => {
+                        if (bet.choice === 'heads') totalHeads += bet.amount;
+                        if (bet.choice === 'tails') totalTails += bet.amount;
+                    });
+
+                    // Use Gemini AI to decide result
+                    const prompt = `In a coin flip betting game:
+                    - Total bet on HEADS: ₹${totalHeads}
+                    - Total bet on TAILS: ₹${totalTails}
+                    
+                    Following the rule: Make the side with LESS money win, so the house profits more.
+                    If both sides have equal bets, return "burn" for no winner.
+                    
+                    Respond with only one word: "heads", "tails", or "burn"`;
+
+                    const response = await fetch(GEMINI_API_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            contents: [{
+                                parts: [{
+                                    text: prompt
+                                }]
+                            }]
+                        })
+                    });
+
+                    const data = await response.json();
+                    const aiResult = data.candidates[0].content.parts[0].text.toLowerCase().trim();
+                    
+                    await setResult(aiResult);
+                    
+                }, countdownTime * 1000);
+                
+            } catch (error) {
+                console.error('Gemini AI Error:', error);
+                // Fallback to manual result
+                alert('AI failed, please set result manually');
+            }
+        }
+
+        async function setResult(result) {
+            await database.ref('currentGame').update({
+                result: result,
+                isActive: false,
+                countdown: 0
+            });
+
+            // Process bets and update wallets
+            await processBets(result);
+            
+            // Reset for next round
+            setTimeout(async () => {
+                await database.ref('currentGame').remove();
+            }, 5000);
+        }
+
+        async function processBets(result) {
+            const betsRef = await database.ref('currentGame/bets').once('value');
+            const bets = betsRef.val() || {};
+
+            for (const [userId, bet] of Object.entries(bets)) {
+                const userRef = database.ref('users/' + userId);
+                const userSnapshot = await userRef.once('value');
+                const userData = userSnapshot.val();
+
+                if (result === 'burn') {
+                    // Return original bet amount
+                    await userRef.update({
+                        wallet: userData.wallet + bet.amount
+                    });
+                } else if (bet.choice === result) {
+                    // Winner gets 2x
+                    const winAmount = bet.amount * 2;
+                    await userRef.update({
+                        wallet: userData.wallet + winAmount,
+                        totalProfit: userData.totalProfit + bet.amount
+                    });
+                } else {
+                    // Loser - money already deducted
+                    await userRef.update({
+                        totalLoss: userData.totalLoss + bet.amount
+                    });
+                }
+            }
+        }
+
+        async function resetGame() {
+            await database.ref('currentGame').remove();
+            gameData = {
+                countdown: 0,
+                isActive: false,
+                totalHeads: 0,
+                totalTails: 0,
+                totalPlayers: 0,
+                result: null
+            };
+            updateGameUI();
+        }
+
+        async function addBoss() {
+            const name = document.getElementById('bossName').value;
+            const referralId = document.getElementById('bossReferralId').value;
+
+            if (!name || !referralId) {
+                alert('Please fill all fields');
+                return;
+            }
+
+            await database.ref('bosses/' + referralId).set({
+                name: name,
+                referralId: referralId,
+                createdAt: Date.now()
+            });
+
+            document.getElementById('bossName').value = '';
+            document.getElementById('bossReferralId').value = '';
+            loadBossList();
+        }
+
+        // UI Functions
+        function showProfile() {
+            document.getElementById('profileModal').classList.remove('hidden');
+            loadProfileData();
+        }
+
+        function showActiveBoss() {
+            document.getElementById('activeBossModal').classList.remove('hidden');
+            loadActiveBossData();
+        }
+
+        function showWallet() {
+            document.getElementById('walletModal').classList.remove('hidden');
+            loadWalletData();
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+        }
+
+        function showAddMoney() {
+            document.getElementById('addMoneyForm').classList.remove('hidden');
+            document.getElementById('withdrawForm').classList.add('hidden');
+        }
+
+        function showWithdraw() {
+            document.getElementById('withdrawForm').classList.remove('hidden');
+            document.getElementById('addMoneyForm').classList.add('hidden');
+        }
+
+        async function requestAddMoney() {
+            const amount = parseInt(document.getElementById('addAmount').value);
+            if (amount < 200) {
+                alert(currentLanguage === 'hi' ? 'न्यूनतम राशि ₹200 है!' : 'Minimum amount is ₹200!');
+                return;
+            }
+
+            await database.ref('walletRequests').push({
+                userId: currentUser.uid,
+                type: 'add',
+                amount: amount,
+                status: 'pending',
+                timestamp: Date.now()
+            });
+
+            alert(currentLanguage === 'hi' ? 'पैसे जोड़ने का अनुरोध भेजा गया!' : 'Add money request sent!');
+            document.getElementById('addAmount').value = '';
+        }
+
+        async function requestWithdraw() {
+            const amount = parseInt(document.getElementById('withdrawAmount').value);
+            if (amount < 4000) {
+                alert(currentLanguage === 'hi' ? 'न्यूनतम निकासी राशि ₹4000 है!' : 'Minimum withdrawal amount is ₹4000!');
+                return;
+            }
+
+            const userRef = await database.ref('users/' + currentUser.uid).once('value');
+            const userData = userRef.val();
+            
+            if (userData.wallet < amount) {
+                alert(currentLanguage === 'hi' ? 'वॉलेट में पर्याप्त राशि नहीं है!' : 'Insufficient wallet balance!');
+                return;
+            }
+
+            await database.ref('walletRequests').push({
+                userId: currentUser.uid,
+                type: 'withdraw',
+                amount: amount,
+                status: 'pending',
+                timestamp: Date.now()
+            });
+
+            alert(currentLanguage === 'hi' ? 'निकासी का अनुरोध भेजा गया!' : 'Withdrawal request sent!');
+            document.getElementById('withdrawAmount').value = '';
+        }
+
+        // Data Loading Functions
+        async function loadUserData() {
+            const userRef = await database.ref('users/' + currentUser.uid).once('value');
+            const userData = userRef.val();
+            
+            if (userData) {
+                document.getElementById('walletBalance').textContent = userData.wallet || 0;
+                document.getElementById('modalWalletBalance').textContent = userData.wallet || 0;
+            }
+        }
+
+        async function loadProfileData() {
+            const userRef = await database.ref('users/' + currentUser.uid).once('value');
+            const userData = userRef.val();
+            
+            document.getElementById('profileContent').innerHTML = `
+                <div class="space-y-4">
+                    <div><strong>Name:</strong> ${userData.name}</div>
+                    <div><strong>Email:</strong> ${userData.email}</div>
+                    <div><strong>Total Profit:</strong> ₹${userData.totalProfit || 0}</div>
+                    <div><strong>Total Loss:</strong> ₹${userData.totalLoss || 0}</div>
+                    <div><strong>Wallet Balance:</strong> ₹${userData.wallet || 0}</div>
+                    <div><strong>Joined:</strong> ${new Date(userData.joinedAt).toLocaleDateString()}</div>
+                </div>
+            `;
+        }
+
+        async function loadActiveBossData() {
+            const bossesRef = await database.ref('bosses').once('value');
+            const bosses = bossesRef.val() || {};
+            
+            let content = '<div class="space-y-4">';
+            for (const [id, boss] of Object.entries(bosses)) {
+                const usersRef = await database.ref('users').orderByChild('referralId').equalTo(boss.referralId).once('value');
+                const users = usersRef.val() || {};
+                const activeUsers = Object.values(users).filter(user => user.isOnline);
+                
+                content += `
+                    <div class="bg-white bg-opacity-10 p-4 rounded-lg">
+                        <h3 class="text-xl font-bold">${boss.name}</h3>
+                        <p>Referral ID: ${boss.referralId}</p>
+                        <p>Active Users: ${activeUsers.length}</p>
+                        <div class="mt-2">
+                            ${activeUsers.map(user => `
+                                <span class="inline-block bg-green-500 text-white px-2 py-1 rounded text-sm mr-2">
+                                    ${user.name} <span class="online-indicator"></span>
+                                </span>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+            content += '</div>';
+            
+            document.getElementById('activeBossContent').innerHTML = content;
+        }
+
+        function loadWalletData() {
+            loadUserData();
+        }
+
+        async function loadAdminData() {
+            loadBossList();
+            loadWalletRequests();
+        }
+
+        async function loadBossList() {
+            const bossesRef = await database.ref('bosses').once('value');
+            const bosses = bossesRef.val() || {};
+            
+            let content = '';
+            for (const [id, boss] of Object.entries(bosses)) {
+                content += `
+                    <div class="bg-white bg-opacity-10 p-4 rounded-lg mb-2 flex justify-between items-center">
+                        <div>
+                            <strong>${boss.name}</strong> - ${boss.referralId}
+                        </div>
+                        <button onclick="removeBoss('${id}')" class="btn-danger">Remove</button>
+                    </div>
+                `;
+            }
+            
+            document.getElementById('bossList').innerHTML = content;
+        }
+
+        async function removeBoss(bossId) {
+            await database.ref('bosses/' + bossId).remove();
+            loadBossList();
+        }
+
+        async function loadWalletRequests() {
+            const requestsRef = await database.ref('walletRequests').orderByChild('status').equalTo('pending').once('value');
+            const requests = requestsRef.val() || {};
+            
+            let content = '';
+            for (const [id, request] of Object.entries(requests)) {
+                const userRef = await database.ref('users/' + request.userId).once('value');
+                const userData = userRef.val();
+                
+                content += `
+                    <div class="bg-white bg-opacity-10 p-4 rounded-lg mb-2">
+                        <div><strong>${userData.name}</strong> - ${userData.email}</div>
+                        <div>Type: ${request.type} | Amount: ₹${request.amount}</div>
+                        <div>Date: ${new Date(request.timestamp).toLocaleString()}</div>
+                        <div class="mt-2">
+                            <button onclick="approveRequest('${id}', '${request.userId}', '${request.type}', ${request.amount})" class="btn-primary mr-2">Approve</button>
+                            <button onclick="rejectRequest('${id}')" class="btn-danger">Reject</button>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            document.getElementById('walletRequests').innerHTML = content || 'No pending requests';
+        }
+
+        async function approveRequest(requestId, userId, type, amount) {
+            const userRef = database.ref('users/' + userId);
+            const userSnapshot = await userRef.once('value');
+            const userData = userSnapshot.val();
+
+            if (type === 'add') {
+                await userRef.update({
+                    wallet: userData.wallet + amount
+                });
+            } else if (type === 'withdraw') {
+                await userRef.update({
+                    wallet: userData.wallet - amount
+                });
+            }
+
+            await database.ref('walletRequests/' + requestId).update({
+                status: 'approved',
+                approvedAt: Date.now()
+            });
+
+            loadWalletRequests();
+        }
+
+        async function rejectRequest(requestId) {
+            await database.ref('walletRequests/' + requestId).update({
+                status: 'rejected',
+                rejectedAt: Date.now()
+            });
+
+            loadWalletRequests();
+        }
+
+        // Real-time listeners
+        function listenToGameUpdates() {
+            database.ref('currentGame').on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    gameData = data;
+                    updateGameUI();
+                    
+                    if (data.countdown > 0 && data.isActive) {
+                        startCountdown(data.countdown, data.startTime);
+                    }
+                    
+                    if (data.result) {
+                        flipCoin(data.result);
+                        setTimeout(() => {
+                            const resultText = data.result === 'burn' ? 
+                                (currentLanguage === 'hi' ? 'सिक्का जल गया!' : 'Coin Burned!') :
+                                (currentLanguage === 'hi' ? `परिणाम: ${data.result === 'heads' ? 'चित' : 'पट'}` : `Result: ${data.result.toUpperCase()}`);
+                            document.getElementById('gameStatus').textContent = resultText;
+                        }, 3000);
+                    }
+                } else {
+                    gameData = {
+                        countdown: 0,
+                        isActive: false,
+                        totalHeads: 0,
+                        totalTails: 0,
+                        totalPlayers: 0,
+                        result: null
+                    };
+                    updateGameUI();
+                }
+            });
+
+            // Listen to current bets for live stats (removed from user interface)
+            database.ref('currentGame/bets').on('value', (snapshot) => {
+                const bets = snapshot.val() || {};
+                let totalHeads = 0, totalTails = 0, totalPlayers = 0;
+                
+                Object.values(bets).forEach(bet => {
+                    totalPlayers++;
+                    if (bet.choice === 'heads') totalHeads += bet.amount;
+                    if (bet.choice === 'tails') totalTails += bet.amount;
+                });
+
+                // Admin stats only
+                if (document.getElementById('adminTotalHeads')) {
+                    document.getElementById('adminTotalHeads').textContent = totalHeads;
+                    document.getElementById('adminTotalTails').textContent = totalTails;
+                    document.getElementById('adminTotalPlayers').textContent = totalPlayers;
+                    document.getElementById('adminTotalBets').textContent = totalHeads + totalTails;
+                }
+            });
+        }
+
+        function startCountdown(initialTime, startTime) {
+            if (countdownInterval) clearInterval(countdownInterval);
+            
+            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+            let timeLeft = Math.max(0, initialTime - elapsed);
+            
+            document.getElementById('countdown').textContent = timeLeft;
+            
+            countdownInterval = setInterval(() => {
+                timeLeft--;
+                document.getElementById('countdown').textContent = Math.max(0, timeLeft);
+                
+                // Disable betting buttons when countdown reaches 0
+                if (timeLeft <= 0) {
+                    clearInterval(countdownInterval);
+                    document.getElementById('gameStatus').textContent = currentLanguage === 'hi' ? 'परिणाम का इंतज़ार...' : 'Waiting for result...';
+                    
+                    // Disable betting buttons
+                    document.getElementById('betHeadsBtn').disabled = true;
+                    document.getElementById('betTailsBtn').disabled = true;
+                } else {
+                    // Enable betting buttons when countdown is active
+                    document.getElementById('betHeadsBtn').disabled = false;
+                    document.getElementById('betTailsBtn').disabled = false;
+                }
+            }, 1000);
+        }
+
+        function updateGameUI() {
+            const bettingInterface = document.getElementById('bettingInterface');
+            const gameStatus = document.getElementById('gameStatus');
+            
+            if (gameData.isActive && gameData.countdown > 0) {
+                bettingInterface.classList.remove('hidden');
+                gameStatus.textContent = currentLanguage === 'hi' ? 'दांव लगाएं!' : 'Place your bets!';
+                
+                // Enable betting buttons
+                document.getElementById('betHeadsBtn').disabled = false;
+                document.getElementById('betTailsBtn').disabled = false;
+            } else {
+                // Disable betting buttons when game is not active
+                document.getElementById('betHeadsBtn').disabled = true;
+                document.getElementById('betTailsBtn').disabled = true;
+                
+                if (!gameData.result) {
+                    gameStatus.textContent = currentLanguage === 'hi' ? 'अगले राउंड का इंतज़ार...' : 'Waiting for next round...';
+                }
+            }
+        }
+
+        // Set user online status
+        function setUserOnline() {
+            if (currentUser) {
+                database.ref('users/' + currentUser.uid + '/isOnline').set(true);
+                database.ref('users/' + currentUser.uid + '/lastSeen').set(Date.now());
+                
+                // Set offline when user leaves
+                database.ref('users/' + currentUser.uid + '/isOnline').onDisconnect().set(false);
+            }
+        }
+
+        // Initialize
+        window.addEventListener('load', () => {
+            updateLanguage();
+            setUserOnline();
         });
-        alert("पट पर दांव लगाया");
-      };
 
-      // Listen for countdown
-      db.ref("game/currentCountdown").on("value", snap => {
-        const time = snap.val();
-        if (time) {
-          countdown.textContent = `अगला राउंड: ${time} सेकंड`;
-          betHeads.disabled = false;
-          betTails.disabled = false;
-        } else {
-          countdown.textContent = "राउंड समाप्त";
-          betHeads.disabled = true;
-          betTails.disabled = true;
-        }
-      });
-
-      // Listen for result
-      db.ref("game/lastResult").on("value", snap => {
-        const res = snap.val();
-        if (res) {
-          coin.className = "coin flip";
-          setTimeout(() => {
-            coin.textContent = res === "heads" ? "चित" : res === "tails" ? "पट" : "जल गया";
-            resultDiv.textContent = res === "burn" ? "सिक्का जल गया! कोई लाभ नहीं" : `परिणाम: ${res === "heads" ? "चित" : "पट"}`;
-            coin.className = "coin";
-          }, 2000);
-        }
-      });
-
-      // Update wallet from balance
-      db.ref("users/" + user.uid + "/balance").on("value", s => {
-        document.getElementById("wallet").textContent = "₹" + (s.val() || 0);
-      });
-    }
-  </script>
+        // Handle page visibility for active time tracking
+        document.addEventListener('visibilitychange', () => {
+            if (currentUser) {
+                if (document.hidden) {
+                    database.ref('users/' + currentUser.uid + '/isOnline').set(false);
+                } else {
+                    database.ref('users/' + currentUser.uid + '/isOnline').set(true);
+                }
+            }
+        });
+    </script>
 </body>
 </html>
