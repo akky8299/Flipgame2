@@ -19,14 +19,6 @@
         .gradient-bg {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
-        .coin-animation {
-            animation: flip 2s infinite;
-        }
-        @keyframes flip {
-            0% { transform: rotateY(0deg); }
-            50% { transform: rotateY(180deg); }
-            100% { transform: rotateY(360deg); }
-        }
         .pulse-green {
             animation: pulse-green 2s infinite;
         }
@@ -78,83 +70,219 @@
             </div>
         </header>
 
-        <!-- Main Content -->
+        <!-- Navigation Tabs -->
         <div class="p-4">
-            <!-- Game Control Section -->
-            <div class="glass-effect p-6 rounded-2xl mb-8">
-                <h3 class="text-white text-xl font-bold mb-4">Game Control</h3>
-                
-                <!-- AI Control -->
-                <div class="mb-6 p-4 bg-white bg-opacity-10 rounded-xl">
-                    <div class="flex items-center justify-between mb-4">
-                        <h4 class="text-white font-semibold">AI Auto Mode</h4>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" id="aiAutoToggle" class="sr-only peer">
-                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-yellow-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-yellow-500"></div>
-                        </label>
+            <div class="flex flex-wrap gap-2 mb-6">
+                <button class="tab-btn active bg-yellow-500 hover:bg-yellow-600 text-black px-4 py-2 rounded-lg font-semibold transition-colors" data-tab="dashboard">
+                    <i class="fas fa-tachometer-alt mr-2"></i>Dashboard
+                </button>
+                <button class="tab-btn bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-lg font-semibold transition-colors" data-tab="gameControl">
+                    <i class="fas fa-gamepad mr-2"></i>Game Control
+                </button>
+                <button class="tab-btn bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-lg font-semibold transition-colors" data-tab="bossManagement">
+                    <i class="fas fa-users-cog mr-2"></i>Boss Management
+                </button>
+                <button class="tab-btn bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-lg font-semibold transition-colors" data-tab="userManagement">
+                    <i class="fas fa-users mr-2"></i>User Management
+                </button>
+                <button class="tab-btn bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-lg font-semibold transition-colors" data-tab="walletManagement">
+                    <i class="fas fa-wallet mr-2"></i>Wallet Management
+                </button>
+            </div>
+
+            <!-- Dashboard Tab -->
+            <div id="dashboard" class="tab-content">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div class="glass-effect p-6 rounded-2xl text-center">
+                        <i class="fas fa-users text-blue-400 text-3xl mb-3"></i>
+                        <h3 class="text-white text-lg font-semibold mb-2">Total Users</h3>
+                        <p id="totalUsersCount" class="text-3xl font-bold text-blue-400">0</p>
                     </div>
-                    <div>
-                        <label class="text-white font-semibold mb-2 block">Auto Timer (seconds):</label>
-                        <input type="number" id="autoTimer" value="60" min="10" max="300" 
-                               class="w-full p-3 rounded-lg bg-white bg-opacity-20 text-white border border-white border-opacity-30 focus:outline-none focus:ring-2 focus:ring-yellow-400">
+                    <div class="glass-effect p-6 rounded-2xl text-center">
+                        <i class="fas fa-circle text-green-400 text-3xl mb-3 pulse-green"></i>
+                        <h3 class="text-white text-lg font-semibold mb-2">Active Users</h3>
+                        <p id="activeUsersCount" class="text-3xl font-bold text-green-400">0</p>
+                    </div>
+                    <div class="glass-effect p-6 rounded-2xl text-center">
+                        <i class="fas fa-coins text-yellow-400 text-3xl mb-3"></i>
+                        <h3 class="text-white text-lg font-semibold mb-2">Total Bets</h3>
+                        <p id="totalBetsAmount" class="text-3xl font-bold text-yellow-400">₹0</p>
+                    </div>
+                    <div class="glass-effect p-6 rounded-2xl text-center">
+                        <i class="fas fa-trophy text-purple-400 text-3xl mb-3"></i>
+                        <h3 class="text-white text-lg font-semibold mb-2">Total Profit</h3>
+                        <p id="totalProfitAmount" class="text-3xl font-bold text-purple-400">₹0</p>
                     </div>
                 </div>
 
-                <!-- Manual Control -->
-                <div class="mb-6 p-4 bg-white bg-opacity-10 rounded-xl">
-                    <h4 class="text-white font-semibold mb-4">Manual Control</h4>
-                    <div class="flex gap-4 mb-4">
-                        <input type="number" id="manualTimer" placeholder="Timer (seconds)" value="60" min="5" max="300" 
-                               class="flex-1 p-3 rounded-lg bg-white bg-opacity-20 text-white border border-white border-opacity-30 focus:outline-none focus:ring-2 focus:ring-yellow-400">
-                        <button id="startManualBtn" class="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg font-bold transition-colors">
-                            Start Game
-                        </button>
-                        <button id="resetGameBtn" class="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-lg font-bold transition-colors">
-                            Reset
-                        </button>
-                    </div>
-                    <div class="flex gap-4">
-                        <button id="headResultBtn" class="bg-yellow-500 hover:bg-yellow-600 text-black px-6 py-3 rounded-lg font-bold transition-colors">
-                            Result: HEAD
-                        </button>
-                        <button id="tailResultBtn" class="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-lg font-bold transition-colors">
-                            Result: TAIL
-                        </button>
-                        <button id="burnResultBtn" class="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-lg font-bold transition-colors">
-                            Burn Coin
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Game Status -->
-                <div class="p-4 bg-white bg-opacity-10 rounded-xl">
-                    <h4 class="text-white font-semibold mb-2">Game Status</h4>
-                    <div class="text-center">
-                        <div id="countdownDisplay" class="text-6xl font-bold text-yellow-400 mb-4">00:00</div>
-                        <div id="gameStatusText" class="text-white text-lg font-semibold">Waiting to Start</div>
+                <!-- Live Betting Chart -->
+                <div class="glass-effect p-6 rounded-2xl mb-8">
+                    <h3 class="text-white text-xl font-bold mb-4">Live Betting Data</h3>
+                    <div style="height: 300px;">
+                        <canvas id="bettingChart"></canvas>
                     </div>
                 </div>
             </div>
 
-            <!-- Live Stats -->
-            <div class="glass-effect p-6 rounded-2xl">
-                <h3 class="text-white text-xl font-bold mb-4">Live Game Stats</h3>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div class="text-center">
-                        <div class="text-yellow-300 font-semibold">Total on Heads</div>
-                        <div class="text-2xl font-bold text-yellow-400">₹<span id="totalHeads">0</span></div>
+            <!-- Game Control Tab -->
+            <div id="gameControl" class="tab-content hidden">
+                <div class="glass-effect p-6 rounded-2xl">
+                    <h3 class="text-white text-xl font-bold mb-4">Game Control</h3>
+                    
+                    <!-- AI Control -->
+                    <div class="mb-6 p-4 bg-white bg-opacity-10 rounded-xl">
+                        <div class="flex items-center justify-between mb-4">
+                            <h4 class="text-white font-semibold">AI Auto Mode</h4>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="aiAutoToggle" class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-yellow-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[""] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-yellow-500"></div>
+                            </label>
+                        </div>
+                        <div>
+                            <label class="text-white font-semibold mb-2 block">Auto Timer (seconds):</label>
+                            <input type="number" id="autoTimer" value="60" min="10" max="300" 
+                                   class="w-full p-3 rounded-lg bg-white bg-opacity-20 text-white border border-white border-opacity-30 focus:outline-none focus:ring-2 focus:ring-yellow-400">
+                        </div>
                     </div>
-                    <div class="text-center">
-                        <div class="text-red-300 font-semibold">Total on Tails</div>
-                        <div class="text-2xl font-bold text-red-400">₹<span id="totalTails">0</span></div>
+
+                    <!-- Manual Control -->
+                    <div class="mb-6 p-4 bg-white bg-opacity-10 rounded-xl">
+                        <h4 class="text-white font-semibold mb-4">Manual Control</h4>
+                        <div class="flex gap-4 mb-4">
+                            <input type="number" id="manualTimer" placeholder="Timer (seconds)" value="60" min="5" max="300" 
+                                   class="flex-1 p-3 rounded-lg bg-white bg-opacity-20 text-white border border-white border-opacity-30 focus:outline-none focus:ring-2 focus:ring-yellow-400">
+                            <button id="startManualBtn" class="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg font-bold transition-colors">
+                                Start Game
+                            </button>
+                            <button id="resetGameBtn" class="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-lg font-bold transition-colors">
+                                Reset
+                            </button>
+                        </div>
+                        <div class="flex gap-4">
+                            <button id="headResultBtn" class="bg-yellow-500 hover:bg-yellow-600 text-black px-6 py-3 rounded-lg font-bold transition-colors">
+                                Result: HEAD
+                            </button>
+                            <button id="tailResultBtn" class="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-lg font-bold transition-colors">
+                                Result: TAIL
+                            </button>
+                            <button id="burnResultBtn" class="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-lg font-bold transition-colors">
+                                Burn Coin
+                            </button>
+                        </div>
                     </div>
-                    <div class="text-center">
-                        <div class="text-green-300 font-semibold">Active Players</div>
-                        <div class="text-2xl font-bold text-green-400"><span id="totalPlayers">0</span></div>
+
+                    <!-- Game Status -->
+                    <div class="p-4 bg-white bg-opacity-10 rounded-xl">
+                        <h4 class="text-white font-semibold mb-2">Game Status</h4>
+                        <div class="text-center">
+                            <div id="countdownDisplay" class="text-6xl font-bold text-yellow-400 mb-4">00:00</div>
+                            <div id="gameStatusText" class="text-white text-lg font-semibold">Waiting to Start</div>
+                        </div>
                     </div>
-                    <div class="text-center">
-                        <div class="text-blue-300 font-semibold">Total Bets</div>
-                        <div class="text-2xl font-bold text-blue-400">₹<span id="totalBets">0</span></div>
+                </div>
+            </div>
+
+            <!-- Boss Management Tab -->
+            <div id="bossManagement" class="tab-content hidden">
+                <div class="glass-effect p-6 rounded-2xl mb-8">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-white text-xl font-bold">Boss Management</h3>
+                        <button id="addBossBtn" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition-colors">
+                            <i class="fas fa-plus mr-2"></i>Add Boss
+                        </button>
+                    </div>
+                    
+                    <div id="bossList" class="space-y-4">
+                        <!-- Boss list will be populated here -->
+                    </div>
+                </div>
+
+                <!-- Add/Edit Boss Modal -->
+                <div id="bossModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+                    <div class="glass-effect p-8 rounded-2xl shadow-2xl max-w-md w-full mx-4">
+                        <h3 id="bossModalTitle" class="text-white text-xl font-bold mb-4">Add Boss</h3>
+                        <form id="bossForm">
+                            <div class="mb-4">
+                                <label class="text-white font-semibold mb-2 block">Boss Name:</label>
+                                <input type="text" id="bossNameInput" required
+                                       class="w-full p-3 rounded-lg bg-white bg-opacity-20 text-white placeholder-gray-300 border border-white border-opacity-30 focus:outline-none focus:ring-2 focus:ring-yellow-400">
+                            </div>
+                            <div class="mb-6">
+                                <label class="text-white font-semibold mb-2 block">Referral ID:</label>
+                                <input type="text" id="referralIdInput" required
+                                       class="w-full p-3 rounded-lg bg-white bg-opacity-20 text-white placeholder-gray-300 border border-white border-opacity-30 focus:outline-none focus:ring-2 focus:ring-yellow-400">
+                            </div>
+                            <div class="flex gap-3">
+                                <button type="submit" class="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-lg transition-colors">
+                                    <i class="fas fa-save mr-2"></i>Save
+                                </button>
+                                <button type="button" id="cancelBossBtn" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 rounded-lg transition-colors">
+                                    <i class="fas fa-times mr-2"></i>Cancel
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- User Management Tab -->
+            <div id="userManagement" class="tab-content hidden">
+                <div class="glass-effect p-6 rounded-2xl mb-8">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-white text-xl font-bold">User Management</h3>
+                        <div class="flex gap-3">
+                            <select id="bossFilter" class="bg-white bg-opacity-20 text-white p-2 rounded-lg border border-white border-opacity-30 focus:outline-none focus:ring-2 focus:ring-yellow-400">
+                                <option value="">All Bosses</option>
+                            </select>
+                            <button id="refreshUsersBtn" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors">
+                                <i class="fas fa-sync mr-2"></i>Refresh
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-white">
+                            <thead>
+                                <tr class="bg-white bg-opacity-10">
+                                    <th class="p-3 text-left">Status</th>
+                                    <th class="p-3 text-left">User Name</th>
+                                    <th class="p-3 text-left">Boss</th>
+                                    <th class="p-3 text-left">Wallet</th>
+                                    <th class="p-3 text-left">Total Profit</th>
+                                    <th class="p-3 text-left">Total Loss</th>
+                                    <th class="p-3 text-left">Active Time</th>
+                                    <th class="p-3 text-left">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usersTableBody">
+                                <!-- Users will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Wallet Management Tab -->
+            <div id="walletManagement" class="tab-content hidden">
+                <div class="glass-effect p-6 rounded-2xl">
+                    <h3 class="text-white text-xl font-bold mb-6">Wallet Requests</h3>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <!-- Add Money Requests -->
+                        <div>
+                            <h4 class="text-white text-lg font-semibold mb-4">Add Money Requests</h4>
+                            <div id="addMoneyRequests" class="space-y-4 max-h-96 overflow-y-auto">
+                                <!-- Add money requests will be populated here -->
+                            </div>
+                        </div>
+
+                        <!-- Withdrawal Requests -->
+                        <div>
+                            <h4 class="text-white text-lg font-semibold mb-4">Withdrawal Requests</h4>
+                            <div id="withdrawalRequests" class="space-y-4 max-h-96 overflow-y-auto">
+                                <!-- Withdrawal requests will be populated here -->
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -185,25 +313,35 @@
         let aiAutoMode = false;
         let autoTimerValue = 60;
         let isGameRunning = false;
+        let bettingChart = null;
 
         // Initialize Admin Panel
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener("DOMContentLoaded", function() {
             setupEventListeners();
             setupRealTimeListeners();
+            setupCharts();
+            switchTab("dashboard"); // Default tab
         });
 
         function setupEventListeners() {
             // Login form
-            document.getElementById('loginForm').addEventListener('submit', handleLogin);
+            document.getElementById("loginForm").addEventListener("submit", handleLogin);
             
             // Logout button
-            document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+            document.getElementById("logoutBtn").addEventListener("click", handleLogout);
             
+            // Tab navigation
+            document.querySelectorAll(".tab-btn").forEach(btn => {
+                btn.addEventListener("click", function() {
+                    switchTab(this.dataset.tab);
+                });
+            });
+
             // AI Auto Toggle
-            document.getElementById('aiAutoToggle').addEventListener('change', function() {
+            document.getElementById("aiAutoToggle").addEventListener("change", function() {
                 aiAutoMode = this.checked;
                 if (aiAutoMode) {
-                    autoTimerValue = parseInt(document.getElementById('autoTimer').value) || 60;
+                    autoTimerValue = parseInt(document.getElementById("autoTimer").value) || 60;
                     startAIMode();
                 } else {
                     stopAIMode();
@@ -211,53 +349,127 @@
             });
 
             // Manual controls
-            document.getElementById('startManualBtn').addEventListener('click', startManualGame);
-            document.getElementById('resetGameBtn').addEventListener('click', resetGame);
+            document.getElementById("startManualBtn").addEventListener("click", startManualGame);
+            document.getElementById("resetGameBtn").addEventListener("click", resetGame);
             
             // Result buttons
-            document.getElementById('headResultBtn').addEventListener('click', () => setResult('head'));
-            document.getElementById('tailResultBtn').addEventListener('click', () => setResult('tail'));
-            document.getElementById('burnResultBtn').addEventListener('click', () => setResult('burn'));
+            document.getElementById("headResultBtn").addEventListener("click", () => setResult("head"));
+            document.getElementById("tailResultBtn").addEventListener("click", () => setResult("tail"));
+            document.getElementById("burnResultBtn").addEventListener("click", () => setResult("burn"));
+
+            // Boss Management
+            document.getElementById("addBossBtn").addEventListener("click", showBossModal);
+            document.getElementById("bossForm").addEventListener("submit", saveBoss);
+            document.getElementById("cancelBossBtn").addEventListener("click", hideBossModal);
+
+            // User Management
+            document.getElementById("refreshUsersBtn").addEventListener("click", loadUsers);
+            document.getElementById("bossFilter").addEventListener("change", filterUsers);
         }
 
         function setupRealTimeListeners() {
             // Listen for betting data
-            database.ref('currentRound/bets').on('value', (snapshot) => {
+            database.ref("currentRound/bets").on("value", (snapshot) => {
                 const bets = snapshot.val() || {};
                 updateBettingStats(bets);
+            });
+
+            // Listen for user data for dashboard and user management
+            database.ref("users").on("value", (snapshot) => {
+                const users = snapshot.val() || {};
+                updateDashboardStats(users);
+                updateUsersTable(users);
+            });
+
+            // Listen for wallet requests
+            database.ref("walletRequests").on("value", (snapshot) => {
+                const requests = snapshot.val() || {};
+                updateWalletRequests(requests);
+            });
+
+            // Listen for boss data
+            database.ref("bosses").on("value", (snapshot) => {
+                const bosses = snapshot.val() || {};
+                updateBossList(bosses);
+            });
+        }
+
+        function setupCharts() {
+            const ctx = document.getElementById("bettingChart").getContext("2d");
+            bettingChart = new Chart(ctx, {
+                type: "doughnut",
+                data: {
+                    labels: ["Head Bets", "Tail Bets"],
+                    datasets: [{
+                        data: [0, 0],
+                        backgroundColor: ["#f59e0b", "#ef4444"],
+                        borderColor: ["#d97706", "#dc2626"],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: "bottom",
+                            labels: {
+                                color: "white"
+                            }
+                        }
+                    }
+                }
             });
         }
 
         async function handleLogin(e) {
             e.preventDefault();
-            const email = document.getElementById('adminEmail').value;
-            const password = document.getElementById('adminPassword').value;
+            const email = document.getElementById("adminEmail").value;
+            const password = document.getElementById("adminPassword").value;
 
-            if (email === 'akky9453226641@gmail.com') {
-                document.getElementById('loginModal').classList.add('hidden');
-                document.getElementById('adminPanel').classList.remove('hidden');
+            if (email === "akky9453226641@gmail.com") {
+                document.getElementById("loginModal").classList.add("hidden");
+                document.getElementById("adminPanel").classList.remove("hidden");
                 
-                await database.ref('adminSession').set({
+                await database.ref("adminSession").set({
                     email: email,
                     loginTime: firebase.database.ServerValue.TIMESTAMP,
-                    status: 'online'
+                    status: "online"
                 });
             } else {
-                alert('Invalid admin credentials');
+                alert("Invalid admin credentials");
             }
         }
 
         async function handleLogout() {
-            await database.ref('adminSession').remove();
-            document.getElementById('loginModal').classList.remove('hidden');
-            document.getElementById('adminPanel').classList.add('hidden');
+            await database.ref("adminSession").remove();
+            document.getElementById("loginModal").classList.remove("hidden");
+            document.getElementById("adminPanel").classList.add("hidden");
             stopAIMode();
+        }
+
+        function switchTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll(".tab-content").forEach(tab => {
+                tab.classList.add("hidden");
+            });
+            
+            // Show selected tab
+            document.getElementById(tabName).classList.remove("hidden");
+            
+            // Update tab buttons
+            document.querySelectorAll(".tab-btn").forEach(btn => {
+                btn.classList.remove("active", "bg-yellow-500", "text-black");
+                btn.classList.add("bg-white", "bg-opacity-20", "text-white");
+            });
+            
+            document.querySelector(`[data-tab="${tabName}"]`).classList.add("active", "bg-yellow-500", "text-black");
         }
 
         async function startAIMode() {
             if (!aiAutoMode) return;
             
-            document.getElementById('gameStatusText').textContent = 'AI Mode: Starting Game...';
+            document.getElementById("gameStatusText").textContent = "AI Mode: Starting Game...";
             await startGameRound(autoTimerValue);
         }
 
@@ -267,11 +479,11 @@
                 clearInterval(gameTimer);
                 gameTimer = null;
             }
-            document.getElementById('gameStatusText').textContent = 'AI Mode Disabled';
+            document.getElementById("gameStatusText").textContent = "AI Mode Disabled";
         }
 
         async function startManualGame() {
-            const timerValue = parseInt(document.getElementById('manualTimer').value) || 60;
+            const timerValue = parseInt(document.getElementById("manualTimer").value) || 60;
             await startGameRound(timerValue);
         }
 
@@ -282,8 +494,8 @@
             countdownTime = timerValue;
             
             // Start new round
-            await database.ref('currentRound').set({
-                status: 'betting',
+            await database.ref("currentRound").set({
+                status: "betting",
                 timeLeft: countdownTime,
                 startTime: firebase.database.ServerValue.TIMESTAMP,
                 bets: {},
@@ -295,14 +507,14 @@
         }
 
         function startCountdown() {
-            document.getElementById('gameStatusText').textContent = 'Betting Active';
+            document.getElementById("gameStatusText").textContent = "Betting Active";
             
             gameTimer = setInterval(async () => {
                 countdownTime--;
                 updateCountdownDisplay();
                 
                 // Update Firebase
-                await database.ref('currentRound/timeLeft').set(countdownTime);
+                await database.ref("currentRound/timeLeft").set(countdownTime);
                 
                 if (countdownTime <= 0) {
                     clearInterval(gameTimer);
@@ -315,34 +527,34 @@
         function updateCountdownDisplay() {
             const minutes = Math.floor(countdownTime / 60);
             const seconds = countdownTime % 60;
-            document.getElementById('countdownDisplay').textContent = 
-                `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            document.getElementById("countdownDisplay").textContent = 
+                `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
         }
 
         async function endBettingPhase() {
-            await database.ref('currentRound/status').set('waiting_result');
-            document.getElementById('gameStatusText').textContent = 'Processing Result...';
+            await database.ref("currentRound/status").set("waiting_result");
+            document.getElementById("gameStatusText").textContent = "Processing Result...";
             
             // Get betting data and determine result
-            const betsSnapshot = await database.ref('currentRound/bets').once('value');
+            const betsSnapshot = await database.ref("currentRound/bets").once("value");
             const bets = betsSnapshot.val() || {};
             
             let headAmount = 0;
             let tailAmount = 0;
             
             Object.values(bets).forEach(bet => {
-                if (bet.choice === 'head') headAmount += bet.amount;
-                if (bet.choice === 'tail') tailAmount += bet.amount;
+                if (bet.choice === "head") headAmount += bet.amount;
+                if (bet.choice === "tail") tailAmount += bet.amount;
             });
 
             // AI Logic: Lower bet wins, equal bets = burn
             let result;
             if (headAmount < tailAmount) {
-                result = 'head';
+                result = "head";
             } else if (tailAmount < headAmount) {
-                result = 'tail';
+                result = "tail";
             } else {
-                result = 'burn';
+                result = "burn";
             }
 
             // Set result
@@ -350,20 +562,20 @@
         }
 
         async function setResult(result) {
-            await database.ref('currentRound').update({
+            await database.ref("currentRound").update({
                 result: result,
-                status: 'finished',
+                status: "finished",
                 timeLeft: 0
             });
 
-            document.getElementById('gameStatusText').textContent = `Result: ${result.toUpperCase()}`;
+            document.getElementById("gameStatusText").textContent = `Result: ${result.toUpperCase()}`;
 
             // Process bets and update wallets instantly
             await processBetsInstantly(result);
             
             // Show result for 3 seconds, then start next round if AI mode
             setTimeout(async () => {
-                await database.ref('currentRound').remove();
+                await database.ref("currentRound").remove();
                 isGameRunning = false;
                 
                 if (aiAutoMode) {
@@ -372,43 +584,39 @@
                         startAIMode();
                     }, 1000);
                 } else {
-                    document.getElementById('gameStatusText').textContent = 'Waiting for Next Round';
-                    document.getElementById('countdownDisplay').textContent = '00:00';
+                    document.getElementById("gameStatusText").textContent = "Waiting for Next Round";
+                    document.getElementById("countdownDisplay").textContent = "00:00";
                 }
             }, 3000);
         }
 
         async function processBetsInstantly(result) {
-            const betsRef = await database.ref('currentRound/bets').once('value');
+            const betsRef = await database.ref("currentRound/bets").once("value");
             const bets = betsRef.val() || {};
 
             // Process all bets simultaneously for instant wallet updates
             const updatePromises = [];
 
             for (const [userId, bet] of Object.entries(bets)) {
-                const userRef = database.ref('users/' + userId);
+                const userRef = database.ref("users/" + userId);
                 
-                // Get current user data
-                const userSnapshot = await userRef.once('value');
-                const userData = userSnapshot.val();
+                // Use transaction for atomic updates
+                const transaction = userRef.transaction(userData => {
+                    if (userData) {
+                        if (result === "burn") {
+                            userData.wallet = (userData.wallet || 0) + bet.amount;
+                        } else if (bet.choice === result) {
+                            const winAmount = bet.amount * 2;
+                            userData.wallet = (userData.wallet || 0) + winAmount;
+                            userData.totalProfit = (userData.totalProfit || 0) + bet.amount;
+                        } else {
+                            userData.totalLoss = (userData.totalLoss || 0) + bet.amount;
+                        }
+                    }
+                    return userData;
+                });
 
-                let walletUpdate = {};
-
-                if (result === 'burn') {
-                    // Return original bet amount
-                    walletUpdate.wallet = userData.wallet + bet.amount;
-                } else if (bet.choice === result) {
-                    // Winner gets 2x
-                    const winAmount = bet.amount * 2;
-                    walletUpdate.wallet = userData.wallet + winAmount;
-                    walletUpdate.totalProfit = (userData.totalProfit || 0) + bet.amount;
-                } else {
-                    // Loser - money already deducted, just update loss
-                    walletUpdate.totalLoss = (userData.totalLoss || 0) + bet.amount;
-                }
-
-                // Add to update promises for instant execution
-                updatePromises.push(userRef.update(walletUpdate));
+                updatePromises.push(transaction);
             }
 
             // Execute all wallet updates instantly
@@ -417,11 +625,11 @@
 
         async function resetGame() {
             stopAIMode();
-            await database.ref('currentRound').remove();
+            await database.ref("currentRound").remove();
             isGameRunning = false;
             countdownTime = 0;
-            document.getElementById('countdownDisplay').textContent = '00:00';
-            document.getElementById('gameStatusText').textContent = 'Game Reset';
+            document.getElementById("countdownDisplay").textContent = "00:00";
+            document.getElementById("gameStatusText").textContent = "Game Reset";
             
             if (gameTimer) {
                 clearInterval(gameTimer);
@@ -430,18 +638,184 @@
         }
 
         function updateBettingStats(bets) {
-            let totalHeads = 0, totalTails = 0, totalPlayers = 0;
+            let totalHeads = 0, totalTails = 0;
             
             Object.values(bets).forEach(bet => {
-                totalPlayers++;
-                if (bet.choice === 'head') totalHeads += bet.amount;
-                if (bet.choice === 'tail') tailAmount += bet.amount;
+                if (bet.choice === "head") totalHeads += bet.amount;
+                if (bet.choice === "tail") totalTails += bet.amount;
             });
 
-            document.getElementById('totalHeads').textContent = totalHeads;
-            document.getElementById('totalTails').textContent = totalTails;
-            document.getElementById('totalPlayers').textContent = totalPlayers;
-            document.getElementById('totalBets').textContent = totalHeads + totalTails;
+            bettingChart.data.datasets[0].data = [totalHeads, totalTails];
+            bettingChart.update();
+
+            // Update live stats in dashboard
+            document.getElementById("totalHeads").textContent = totalHeads;
+            document.getElementById("totalTails").textContent = totalTails;
+            document.getElementById("totalBets").textContent = totalHeads + totalTails;
+            
+            // Count active bettors (users who placed a bet in current round)
+            const activeBettors = Object.keys(bets).length;
+            document.getElementById("totalPlayers").textContent = activeBettors;
+        }
+
+        function updateDashboardStats(users) {
+            const userCount = Object.keys(users).length;
+            const activeUsers = Object.values(users).filter(u => u.isOnline).length;
+            const totalProfit = Object.values(users).reduce((acc, u) => acc + (u.totalProfit || 0), 0);
+            const totalLoss = Object.values(users).reduce((acc, u) => acc + (u.totalLoss || 0), 0);
+            const totalBets = totalProfit + totalLoss; // Assuming total bets is sum of profit and loss
+
+            document.getElementById("totalUsersCount").textContent = userCount;
+            document.getElementById("activeUsersCount").textContent = activeUsers;
+            document.getElementById("totalBetsAmount").textContent = `₹${totalBets}`;
+            document.getElementById("totalProfitAmount").textContent = `₹${totalProfit}`;
+        }
+
+        function updateUsersTable(users) {
+            const tableBody = document.getElementById("usersTableBody");
+            tableBody.innerHTML = "";
+
+            for (const [uid, user] of Object.entries(users)) {
+                const row = `
+                    <tr class="border-b border-gray-700">
+                        <td class="p-3">${user.isOnline ? 
+                            `<span class="inline-block w-3 h-3 bg-green-500 rounded-full mr-2"></span>Online` : 
+                            `<span class="inline-block w-3 h-3 bg-gray-500 rounded-full mr-2"></span>Offline`
+                        }</td>
+                        <td class="p-3">${user.name}</td>
+                        <td class="p-3">${user.referralId || "N/A"}</td>
+                        <td class="p-3">₹${user.wallet || 0}</td>
+                        <td class="p-3 text-green-400">₹${user.totalProfit || 0}</td>
+                        <td class="p-3 text-red-400">₹${user.totalLoss || 0}</td>
+                        <td class="p-3">${user.activeTime ? (user.activeTime / 60).toFixed(1) + " min" : "0 min"}</td>
+                        <td class="p-3">
+                            <button onclick="deleteUser(\'${uid}\')" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm">Delete</button>
+                        </td>
+                    </tr>
+                `;
+                tableBody.innerHTML += row;
+            }
+        }
+
+        async function deleteUser(uid) {
+            if (confirm("Are you sure you want to delete this user?")) {
+                await database.ref("users/" + uid).remove();
+            }
+        }
+
+        function updateWalletRequests(requests) {
+            const addMoneyContainer = document.getElementById("addMoneyRequests");
+            const withdrawalContainer = document.getElementById("withdrawalRequests");
+            addMoneyContainer.innerHTML = "";
+            withdrawalContainer.innerHTML = "";
+
+            for (const [id, request] of Object.entries(requests)) {
+                if (request.status === "pending") {
+                    const requestDiv = `
+                        <div class="bg-white bg-opacity-10 p-4 rounded-lg mb-2">
+                            <div><strong>User ID:</strong> ${request.userId}</div>
+                            <div><strong>Type:</strong> ${request.type} | <strong>Amount:</strong> ₹${request.amount}</div>
+                            <div><strong>Timestamp:</strong> ${new Date(request.timestamp).toLocaleString()}</div>
+                            <div class="mt-2">
+                                <button onclick="approveRequest(\'${id}\', \'${request.userId}\', \'${request.type}\', ${request.amount})" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded">Approve</button>
+                                <button onclick="rejectRequest(\'${id}\')" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded ml-2">Reject</button>
+                            </div>
+                        </div>
+                    `;
+                    if (request.type === "add") {
+                        addMoneyContainer.innerHTML += requestDiv;
+                    } else if (request.type === "withdraw") {
+                        withdrawalContainer.innerHTML += requestDiv;
+                    }
+                }
+            }
+            if (addMoneyContainer.innerHTML === "") addMoneyContainer.innerHTML = "<p class=\"text-white text-opacity-70\">No pending add money requests.</p>";
+            if (withdrawalContainer.innerHTML === "") withdrawalContainer.innerHTML = "<p class=\"text-white text-opacity-70\">No pending withdrawal requests.</p>";
+        }
+
+        async function approveRequest(requestId, userId, type, amount) {
+            const userRef = database.ref("users/" + userId);
+            await userRef.transaction(userData => {
+                if (userData) {
+                    if (type === "add") {
+                        userData.wallet = (userData.wallet || 0) + amount;
+                    } else if (type === "withdraw") {
+                        userData.wallet = (userData.wallet || 0) - amount;
+                    }
+                }
+                return userData;
+            });
+
+            await database.ref("walletRequests/" + requestId).update({ status: "approved" });
+        }
+
+        async function rejectRequest(requestId) {
+            await database.ref("walletRequests/" + requestId).update({ status: "rejected" });
+        }
+
+        function showBossModal() {
+            document.getElementById("bossModal").classList.remove("hidden");
+            document.getElementById("bossModalTitle").textContent = "Add Boss";
+            document.getElementById("bossNameInput").value = "";
+            document.getElementById("referralIdInput").value = "";
+        }
+
+        function hideBossModal() {
+            document.getElementById("bossModal").classList.add("hidden");
+        }
+
+        async function saveBoss(e) {
+            e.preventDefault();
+            const bossName = document.getElementById("bossNameInput").value;
+            const referralId = document.getElementById("referralIdInput").value;
+
+            if (!bossName || !referralId) {
+                alert("Please fill all fields");
+                return;
+            }
+
+            await database.ref("bosses/" + referralId).set({
+                name: bossName,
+                referralId: referralId,
+                createdAt: firebase.database.ServerValue.TIMESTAMP
+            });
+
+            hideBossModal();
+        }
+
+        let currentBossId = null; // For filtering users
+
+        function updateBossList(bosses) {
+            const container = document.getElementById("bossList");
+            container.innerHTML = "";
+            const bossFilter = document.getElementById("bossFilter");
+            bossFilter.innerHTML = "<option value=\"\">All Bosses</option>";
+
+            for (const [id, boss] of Object.entries(bosses)) {
+                const bossDiv = `
+                    <div class="bg-white bg-opacity-10 p-4 rounded-lg mb-2 flex justify-between items-center">
+                        <div><strong>${boss.name}</strong> - ${boss.referralId}</div>
+                        <button onclick="removeBoss(\'${id}\')" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded">Remove</button>
+                    </div>
+                `;
+                container.innerHTML += bossDiv;
+                bossFilter.innerHTML += `<option value="${boss.referralId}">${boss.name}</option>`;
+            }
+        }
+
+        async function removeBoss(bossId) {
+            if (confirm("Are you sure you want to delete this boss?")) {
+                await database.ref("bosses/" + bossId).remove();
+            }
+        }
+
+        async function loadUsers() {
+            // This will be handled by the real-time listener updateUsersTable
+        }
+
+        function filterUsers() {
+            currentBossId = document.getElementById("bossFilter").value;
+            // The real-time listener for users will re-render the table based on this filter
         }
     </script>
 </body>
