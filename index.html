@@ -599,8 +599,8 @@
                     showGameInterface();
                 }
                 
-                // Load user data
-                loadUserData();
+                // Load user data and listen for real-time updates
+                listenToUserData();
                 
                 // Start listening to game updates
                 listenToGameUpdates();
@@ -652,13 +652,18 @@
             }
 
             // Check wallet balance
-            const userRef = await database.ref('users/' + currentUser.uid).once('value');
-            const userData = userRef.val();
+            const userRef = database.ref('users/' + currentUser.uid);
+            const userSnapshot = await userRef.once('value');
+            const userData = userSnapshot.val();
             
             if (userData.wallet < betAmount) {
                 alert(currentLanguage === 'hi' ? 'वॉलेट में पर्याप्त राशि नहीं है!' : 'Insufficient wallet balance!');
                 return;
             }
+
+            // Deduct amount from wallet instantly on client side
+            document.getElementById('walletBalance').textContent = userData.wallet - betAmount;
+            document.getElementById('modalWalletBalance').textContent = userData.wallet - betAmount;
 
             // Place bet in currentRound instead of currentGame
             const betData = {
@@ -670,8 +675,8 @@
 
             await database.ref('currentRound/bets/' + currentUser.uid).set(betData);
             
-            // Update user wallet
-            await database.ref('users/' + currentUser.uid + '/wallet').set(userData.wallet - betAmount);
+            // Update user wallet in Firebase (this will trigger the real-time listener)
+            await userRef.update({ wallet: userData.wallet - betAmount });
             
             alert(currentLanguage === 'hi' ? `₹${betAmount} का दांव ${choice === 'head' ? 'चित' : 'पट'} पर लगाया गया!` : `₹${betAmount} bet placed on ${choice}!`);
         }
@@ -690,7 +695,7 @@
             }, 3000);
         }
 
-        // Admin Functions
+        // Admin Functions (These are for the admin panel, not directly used in user UI)
         async function startBetting() {
             const countdownTime = parseInt(document.getElementById('adminCountdown').value);
             if (!countdownTime || countdownTime < 5) {
@@ -800,7 +805,7 @@
 
         function showWallet() {
             document.getElementById('walletModal').classList.remove('hidden');
-            loadWalletData();
+            // Wallet balance is updated by real-time listener, no need to load here
         }
 
         function closeModal(modalId) {
@@ -864,13 +869,13 @@
         }
 
         // Data Loading Functions
-        async function loadUserData() {
-            const userRef = await database.ref('users/' + currentUser.uid).once('value');
-            const userData = userRef.val();
-            
-            if (userData) {
-                document.getElementById('walletBalance').textContent = userData.wallet || 0;
-                document.getElementById('modalWalletBalance').textContent = userData.wallet || 0;
+        function listenToUserData() {
+            if (currentUser) {
+                database.ref('users/' + currentUser.uid + '/wallet').on('value', (snapshot) => {
+                    const walletBalance = snapshot.val() || 0;
+                    document.getElementById('walletBalance').textContent = walletBalance;
+                    document.getElementById('modalWalletBalance').textContent = walletBalance;
+                });
             }
         }
 
@@ -920,94 +925,8 @@
             document.getElementById('activeBossContent').innerHTML = content;
         }
 
-        function loadWalletData() {
-            loadUserData();
-        }
-
         async function loadAdminData() {
-            loadBossList();
-            loadWalletRequests();
-        }
-
-        async function loadBossList() {
-            const bossesRef = await database.ref('bosses').once('value');
-            const bosses = bossesRef.val() || {};
-            
-            let content = '';
-            for (const [id, boss] of Object.entries(bosses)) {
-                content += `
-                    <div class="bg-white bg-opacity-10 p-4 rounded-lg mb-2 flex justify-between items-center">
-                        <div>
-                            <strong>${boss.name}</strong> - ${boss.referralId}
-                        </div>
-                        <button onclick="removeBoss('${id}')" class="btn-danger">Remove</button>
-                    </div>
-                `;
-            }
-            
-            document.getElementById('bossList').innerHTML = content;
-        }
-
-        async function removeBoss(bossId) {
-            await database.ref('bosses/' + bossId).remove();
-            loadBossList();
-        }
-
-        async function loadWalletRequests() {
-            const requestsRef = await database.ref('walletRequests').orderByChild('status').equalTo('pending').once('value');
-            const requests = requestsRef.val() || {};
-            
-            let content = '';
-            for (const [id, request] of Object.entries(requests)) {
-                const userRef = await database.ref('users/' + request.userId).once('value');
-                const userData = userRef.val();
-                
-                content += `
-                    <div class="bg-white bg-opacity-10 p-4 rounded-lg mb-2">
-                        <div><strong>${userData.name}</strong> - ${userData.email}</div>
-                        <div>Type: ${request.type} | Amount: ₹${request.amount}</div>
-                        <div>Date: ${new Date(request.timestamp).toLocaleString()}</div>
-                        <div class="mt-2">
-                            <button onclick="approveRequest('${id}', '${request.userId}', '${request.type}', ${request.amount})" class="btn-primary mr-2">Approve</button>
-                            <button onclick="rejectRequest('${id}')" class="btn-danger">Reject</button>
-                        </div>
-                    </div>
-                `;
-            }
-            
-            document.getElementById('walletRequests').innerHTML = content || 'No pending requests';
-        }
-
-        async function approveRequest(requestId, userId, type, amount) {
-            const userRef = database.ref('users/' + userId);
-            const userSnapshot = await userRef.once('value');
-            const userData = userSnapshot.val();
-
-            if (type === 'add') {
-                await userRef.update({
-                    wallet: userData.wallet + amount
-                });
-            } else if (type === 'withdraw') {
-                await userRef.update({
-                    wallet: userData.wallet - amount
-                });
-            }
-
-            await database.ref('walletRequests/' + requestId).update({
-                status: 'approved',
-                approvedAt: Date.now()
-            });
-
-            loadWalletRequests();
-        }
-
-        async function rejectRequest(requestId) {
-            await database.ref('walletRequests/' + requestId).update({
-                status: 'rejected',
-                rejectedAt: Date.now()
-            });
-
-            loadWalletRequests();
+            // This function is primarily for the admin panel, not directly used here
         }
 
         // Real-time listeners - FIXED VERSION
@@ -1045,26 +964,6 @@
                         result: null
                     };
                     updateGameUI();
-                }
-            });
-
-            // Listen to current bets for admin stats only
-            database.ref('currentRound/bets').on('value', (snapshot) => {
-                const bets = snapshot.val() || {};
-                let totalHeads = 0, totalTails = 0, totalPlayers = 0;
-                
-                Object.values(bets).forEach(bet => {
-                    totalPlayers++;
-                    if (bet.choice === 'head') totalHeads += bet.amount;
-                    if (bet.choice === 'tail') totalTails += bet.amount;
-                });
-
-                // Admin stats only
-                if (document.getElementById('adminTotalHeads')) {
-                    document.getElementById('adminTotalHeads').textContent = totalHeads;
-                    document.getElementById('adminTotalTails').textContent = totalTails;
-                    document.getElementById('adminTotalPlayers').textContent = totalPlayers;
-                    document.getElementById('adminTotalBets').textContent = totalHeads + totalTails;
                 }
             });
         }
@@ -1146,4 +1045,3 @@
     </script>
 </body>
 </html>
-
