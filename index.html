@@ -329,11 +329,11 @@
 
                 <!-- Bet Buttons -->
                 <div class="flex justify-center gap-4">
-                    <button onclick="placeBet('heads')" class="bet-button heads" id="betHeadsBtn">
+                    <button onclick="placeBet('head')" class="bet-button heads" id="betHeadsBtn">
                         <i class="fas fa-star mr-2"></i>
                         <span data-en="BET HEADS" data-hi="चित पर दांव">BET HEADS</span>
                     </button>
-                    <button onclick="placeBet('tails')" class="bet-button tails" id="betTailsBtn">
+                    <button onclick="placeBet('tail')" class="bet-button tails" id="betTailsBtn">
                         <i class="fas fa-moon mr-2"></i>
                         <span data-en="BET TAILS" data-hi="पट पर दांव">BET TAILS</span>
                     </button>
@@ -418,8 +418,8 @@
                         <button onclick="resetGame()" class="btn-danger">Reset Game</button>
                     </div>
                     <div class="flex gap-4">
-                        <button onclick="setResult('heads')" class="bet-button heads">Result: HEADS</button>
-                        <button onclick="setResult('tails')" class="bet-button tails">Result: TAILS</button>
+                        <button onclick="setResult('head')" class="bet-button heads">Result: HEADS</button>
+                        <button onclick="setResult('tail')" class="bet-button tails">Result: TAILS</button>
                         <button onclick="setResult('burn')" class="bet-button">Burn Coin</button>
                     </div>
                 </div>
@@ -660,7 +660,7 @@
                 return;
             }
 
-            // Place bet
+            // Place bet in currentRound instead of currentGame
             const betData = {
                 userId: currentUser.uid,
                 choice: choice,
@@ -668,12 +668,12 @@
                 timestamp: Date.now()
             };
 
-            await database.ref('currentGame/bets/' + currentUser.uid).set(betData);
+            await database.ref('currentRound/bets/' + currentUser.uid).set(betData);
             
             // Update user wallet
             await database.ref('users/' + currentUser.uid + '/wallet').set(userData.wallet - betAmount);
             
-            alert(currentLanguage === 'hi' ? `₹${betAmount} का दांव ${choice === 'heads' ? 'चित' : 'पट'} पर लगाया गया!` : `₹${betAmount} bet placed on ${choice}!`);
+            alert(currentLanguage === 'hi' ? `₹${betAmount} का दांव ${choice === 'head' ? 'चित' : 'पट'} पर लगाया गया!` : `₹${betAmount} bet placed on ${choice}!`);
         }
 
         function flipCoin(result) {
@@ -682,9 +682,9 @@
             
             setTimeout(() => {
                 coin.classList.remove('flip');
-                if (result === 'heads') {
+                if (result === 'head') {
                     coin.style.transform = 'rotateY(0deg)';
-                } else if (result === 'tails') {
+                } else if (result === 'tail') {
                     coin.style.transform = 'rotateY(180deg)';
                 }
             }, 3000);
@@ -698,74 +698,21 @@
                 return;
             }
 
-            // Use Gemini AI for automatic countdown
-            await useGeminiAI(countdownTime);
-        }
-
-        async function useGeminiAI(countdownTime) {
-            try {
-                // Start countdown
-                await database.ref('currentGame').update({
-                    isActive: true,
-                    countdown: countdownTime,
-                    startTime: Date.now()
-                });
-
-                // Get current bets for AI decision
-                setTimeout(async () => {
-                    const betsRef = await database.ref('currentGame/bets').once('value');
-                    const bets = betsRef.val() || {};
-                    
-                    let totalHeads = 0, totalTails = 0;
-                    
-                    Object.values(bets).forEach(bet => {
-                        if (bet.choice === 'heads') totalHeads += bet.amount;
-                        if (bet.choice === 'tails') totalTails += bet.amount;
-                    });
-
-                    // Use Gemini AI to decide result
-                    const prompt = `In a coin flip betting game:
-                    - Total bet on HEADS: ₹${totalHeads}
-                    - Total bet on TAILS: ₹${totalTails}
-                    
-                    Following the rule: Make the side with LESS money win, so the house profits more.
-                    If both sides have equal bets, return "burn" for no winner.
-                    
-                    Respond with only one word: "heads", "tails", or "burn"`;
-
-                    const response = await fetch(GEMINI_API_URL, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            contents: [{
-                                parts: [{
-                                    text: prompt
-                                }]
-                            }]
-                        })
-                    });
-
-                    const data = await response.json();
-                    const aiResult = data.candidates[0].content.parts[0].text.toLowerCase().trim();
-                    
-                    await setResult(aiResult);
-                    
-                }, countdownTime * 1000);
-                
-            } catch (error) {
-                console.error('Gemini AI Error:', error);
-                // Fallback to manual result
-                alert('AI failed, please set result manually');
-            }
+            // Start countdown in currentRound
+            await database.ref('currentRound').set({
+                status: 'betting',
+                timeLeft: countdownTime,
+                startTime: firebase.database.ServerValue.TIMESTAMP,
+                bets: {},
+                totalAmount: 0
+            });
         }
 
         async function setResult(result) {
-            await database.ref('currentGame').update({
+            await database.ref('currentRound').update({
                 result: result,
-                isActive: false,
-                countdown: 0
+                status: 'finished',
+                timeLeft: 0
             });
 
             // Process bets and update wallets
@@ -773,12 +720,12 @@
             
             // Reset for next round
             setTimeout(async () => {
-                await database.ref('currentGame').remove();
+                await database.ref('currentRound').remove();
             }, 5000);
         }
 
         async function processBets(result) {
-            const betsRef = await database.ref('currentGame/bets').once('value');
+            const betsRef = await database.ref('currentRound/bets').once('value');
             const bets = betsRef.val() || {};
 
             for (const [userId, bet] of Object.entries(bets)) {
@@ -808,7 +755,7 @@
         }
 
         async function resetGame() {
-            await database.ref('currentGame').remove();
+            await database.ref('currentRound').remove();
             gameData = {
                 countdown: 0,
                 isActive: false,
@@ -1063,16 +1010,20 @@
             loadWalletRequests();
         }
 
-        // Real-time listeners
+        // Real-time listeners - FIXED VERSION
         function listenToGameUpdates() {
-            database.ref('currentGame').on('value', (snapshot) => {
+            // Listen to currentRound instead of currentGame for better sync with admin
+            database.ref('currentRound').on('value', (snapshot) => {
                 const data = snapshot.val();
                 if (data) {
-                    gameData = data;
+                    gameData.isActive = data.status === 'betting';
+                    gameData.countdown = data.timeLeft || 0;
+                    gameData.result = data.result || null;
+                    
                     updateGameUI();
                     
-                    if (data.countdown > 0 && data.isActive) {
-                        startCountdown(data.countdown, data.startTime);
+                    if (data.timeLeft > 0 && data.status === 'betting') {
+                        startCountdownFromServer(data.timeLeft);
                     }
                     
                     if (data.result) {
@@ -1080,7 +1031,7 @@
                         setTimeout(() => {
                             const resultText = data.result === 'burn' ? 
                                 (currentLanguage === 'hi' ? 'सिक्का जल गया!' : 'Coin Burned!') :
-                                (currentLanguage === 'hi' ? `परिणाम: ${data.result === 'heads' ? 'चित' : 'पट'}` : `Result: ${data.result.toUpperCase()}`);
+                                (currentLanguage === 'hi' ? `परिणाम: ${data.result === 'head' ? 'चित' : 'पट'}` : `Result: ${data.result.toUpperCase()}`);
                             document.getElementById('gameStatus').textContent = resultText;
                         }, 3000);
                     }
@@ -1097,15 +1048,15 @@
                 }
             });
 
-            // Listen to current bets for live stats (removed from user interface)
-            database.ref('currentGame/bets').on('value', (snapshot) => {
+            // Listen to current bets for admin stats only
+            database.ref('currentRound/bets').on('value', (snapshot) => {
                 const bets = snapshot.val() || {};
                 let totalHeads = 0, totalTails = 0, totalPlayers = 0;
                 
                 Object.values(bets).forEach(bet => {
                     totalPlayers++;
-                    if (bet.choice === 'heads') totalHeads += bet.amount;
-                    if (bet.choice === 'tails') totalTails += bet.amount;
+                    if (bet.choice === 'head') totalHeads += bet.amount;
+                    if (bet.choice === 'tail') totalTails += bet.amount;
                 });
 
                 // Admin stats only
@@ -1118,11 +1069,8 @@
             });
         }
 
-        function startCountdown(initialTime, startTime) {
+        function startCountdownFromServer(timeLeft) {
             if (countdownInterval) clearInterval(countdownInterval);
-            
-            const elapsed = Math.floor((Date.now() - startTime) / 1000);
-            let timeLeft = Math.max(0, initialTime - elapsed);
             
             document.getElementById('countdown').textContent = timeLeft;
             
