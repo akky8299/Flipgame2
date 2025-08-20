@@ -1181,7 +1181,7 @@
 
             database.ref('walletRequests').push({
                 userId: currentUser.uid,
-                type: 'add',
+                type: 'add_money',
                 amount: amount,
                 status: 'pending',
                 timestamp: firebase.database.ServerValue.TIMESTAMP,
@@ -1210,16 +1210,25 @@
                     return;
                 }
 
-                database.ref('walletRequests').push({
-                    userId: currentUser.uid,
-                    type: 'withdraw',
-                    amount: amount,
-                    status: 'pending',
-                    timestamp: firebase.database.ServerValue.TIMESTAMP,
-                    userEmail: currentUser.email,
-                    currentBalance: balance
+                // Deduct amount immediately from user balance
+                const newBalance = balance - amount;
+                database.ref('users/' + currentUser.uid + '/balance').set(newBalance).then(() => {
+                    // Update wallet display immediately
+                    updateWalletBalance(newBalance);
+                    
+                    // Create withdraw request
+                    return database.ref('walletRequests').push({
+                        userId: currentUser.uid,
+                        type: 'withdraw',
+                        amount: amount,
+                        status: 'pending',
+                        timestamp: firebase.database.ServerValue.TIMESTAMP,
+                        userEmail: currentUser.email,
+                        userName: currentUser.displayName || 'Unknown User',
+                        currentBalance: newBalance
+                    });
                 }).then(() => {
-                    showNotification('Withdraw request sent to admin!', 'success');
+                    showNotification('Withdraw request sent! Amount deducted from wallet.', 'success');
                     document.getElementById('withdrawAmount').value = '';
                     closeModal('withdrawModal');
                 }).catch((error) => {
