@@ -810,13 +810,13 @@
 
                 let result;
                 
-                // Enhanced AI Logic: Side with MORE money loses (opposite of original)
+                // AI Logic: Side with LESS money wins (kam rupye wala win kare)
                 if (headAmount === tailAmount) {
                     result = 'burn';
-                } else if (headAmount > tailAmount) {
-                    result = 'tails'; // More money on heads, so tails wins
+                } else if (headAmount < tailAmount) {
+                    result = 'heads'; // Less money on heads, so heads wins
                 } else {
-                    result = 'heads'; // More money on tails, so heads wins
+                    result = 'tails'; // Less money on tails, so tails wins
                 }
 
                 // Set result in Firebase
